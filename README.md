@@ -53,7 +53,7 @@ a time budget in minutes and picks the number of steps from the speed of its fir
 ```
 python scripts/calibrate_snr.py --full
 python scripts/check_reference.py --full
-python scripts/train.py --full --minutes 25
+python scripts/train.py --full --minutes 25 --batch 2048
 python scripts/evaluate.py --full --part calibration
 python scripts/evaluate.py --full --part reference
 python scripts/sequential.py --full

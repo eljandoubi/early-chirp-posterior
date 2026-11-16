@@ -56,7 +56,7 @@ def kolmogorov_pvalue(d: float, n: int) -> float:
 
 def uniform_ks(ranks: torch.Tensor, n_samples: int) -> dict:
     """Kolmogorov distance of ranks (0..L) to the discrete uniform and its p value."""
-    counts = torch.bincount(ranks.long(), minlength=n_samples + 1).double()
+    counts = torch.bincount(ranks.long().cpu(), minlength=n_samples + 1).double()
     ecdf = torch.cumsum(counts, 0) / counts.sum()
     ideal = torch.arange(1, n_samples + 2, dtype=torch.float64) / (n_samples + 1)
     d = (ecdf - ideal).abs().max().item()
@@ -73,7 +73,9 @@ def central_coverage(truth, samples, levels) -> dict:
     """Central interval coverage per summary: {level: tensor of shape (k,)}."""
     out = {}
     for c in levels:
-        q = torch.tensor([(1 - c) / 2, (1 + c) / 2], dtype=samples.dtype)
+        q = torch.tensor(
+            [(1 - c) / 2, (1 + c) / 2], dtype=samples.dtype, device=samples.device
+        )
         lo, hi = torch.quantile(samples, q, dim=1)
         out[c] = ((truth >= lo) & (truth <= hi)).double().mean(0)
     return out
@@ -88,7 +90,7 @@ def tarp(truth, samples, reference, periodic, n_grid: int = 101):
     d_true = unit_distance(truth, reference, periodic).norm(dim=-1)
     d_samp = unit_distance(samples, reference[:, None, :], periodic).norm(dim=-1)
     frac = (d_samp < d_true[:, None]).double().mean(1)
-    levels = torch.linspace(0, 1, n_grid, dtype=torch.float64)
+    levels = torch.linspace(0, 1, n_grid, dtype=torch.float64, device=frac.device)
     ecp = (frac[None, :] < levels[:, None]).double().mean(1)
     return levels, ecp
 

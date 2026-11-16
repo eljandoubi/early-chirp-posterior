@@ -66,6 +66,8 @@ def train_flow(
         if minutes and step == 30:
             per_step = (time.perf_counter() - t0) / 30
             total = max(31, int(0.95 * minutes * 60 / per_step))
+            if log:
+                log(dict(step=30, planned_steps=total, seconds_per_step=per_step))
         progress = step / max(total, 1)
         rate = lr_end + 0.5 * (lr - lr_end) * (1 + math.cos(math.pi * progress))
         rate *= min(1.0, (step + 1) / warmup)
