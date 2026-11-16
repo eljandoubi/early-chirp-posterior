@@ -37,6 +37,7 @@ def test_training_lowers_the_validation_loss_and_keeps_the_best_weights():
     nll = [h["val_nll"] for h in out["history"]]
     assert len(nll) == 3 and nll[-1] < nll[0] <= 0.05
     assert out["summary"]["best_val_nll"] == min(nll)
+    assert out["summary"]["skipped_steps"] == 0
     val = training_batch(sim, 256, 32, torch.Generator().manual_seed(10_001))
     assert abs(mean_nll(flow, val) - out["summary"]["best_val_nll"]) < 1e-4
 

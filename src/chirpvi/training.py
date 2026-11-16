@@ -35,7 +35,7 @@ def train_flow(
     flow: ConditionalFlow,
     steps: int,
     batch: int = 512,
-    lr: float = 1e-3,
+    lr: float = 3e-4,
     lr_end: float = 1e-5,
     n_min: int = 32,
     seed: int = 0,
@@ -43,11 +43,14 @@ def train_flow(
     val_every: int = 500,
     minutes: float | None = None,
     log=None,
+    warmup: int = 200,
+    clip: float = 1.0,
 ) -> dict:
     """Maximise log q(u | w, f) on fresh simulations; keep the best validation weights.
 
-    With minutes set, the first 30 steps are timed and the step count is chosen to
-    fill the budget. Returns the history and a summary.
+    The rate warms up linearly, then follows a cosine; steps whose gradient is not
+    finite are skipped and counted. With minutes set, the first 30 steps are timed
+    and the step count is chosen to fill the budget. Returns history and summary.
     """
     flow.to(sim.device)
     opt = torch.optim.Adam(flow.parameters(), lr=lr)
@@ -56,7 +59,7 @@ def train_flow(
         sim, val_size, n_min, make_generator(seed + 10_000, sim.device)
     )
     total = max(steps, 31) if minutes else steps
-    history, best, best_state, run = [], math.inf, None, 0.0
+    history, best, best_state, run, skipped = [], math.inf, None, 0.0, 0
     t0 = time.perf_counter()
     step = 0
     while step < total:
@@ -65,15 +68,19 @@ def train_flow(
             total = max(31, int(0.95 * minutes * 60 / per_step))
         progress = step / max(total, 1)
         rate = lr_end + 0.5 * (lr - lr_end) * (1 + math.cos(math.pi * progress))
+        rate *= min(1.0, (step + 1) / warmup)
         for group in opt.param_groups:
             group["lr"] = rate
         u, w, frac = training_batch(sim, batch, n_min, gen)
         loss = -flow.log_prob(u, w, frac).mean()
         opt.zero_grad(set_to_none=True)
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(flow.parameters(), 5.0)
-        opt.step()
-        run = loss.item() if step == 0 else 0.98 * run + 0.02 * loss.item()
+        norm = torch.nn.utils.clip_grad_norm_(flow.parameters(), clip)
+        if torch.isfinite(norm) and torch.isfinite(loss):
+            opt.step()
+            run = loss.item() if step == 0 else 0.98 * run + 0.02 * loss.item()
+        else:
+            skipped += 1
         step += 1
         if step % val_every == 0 or step == total:
             nll = mean_nll(flow, val)
@@ -97,7 +104,9 @@ def train_flow(
         flow.load_state_dict(best_state)
     summary = dict(
         steps=step,
+        skipped_steps=skipped,
         batch=batch,
+        learning_rate=lr,
         seconds=time.perf_counter() - t0,
         best_val_nll=best,
         parameters=sum(p.numel() for p in flow.parameters()),
