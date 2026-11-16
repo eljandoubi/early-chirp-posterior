@@ -13,13 +13,18 @@ likelihood is exact, so the true posterior can be sampled and used as the refere
 Two flows were trained with the same settings (seeds 0 and 1). Unless a title says seed1, the numbers below were
 measured on the first one. It saw 18,500 batches of 2,048 fresh simulations (37.9 million observations, none
 reused) in 23.4 minutes on a T4. The tables are the output of `scripts/report.py` (kept in `results/tables.txt`,
-which also holds the seed1 tables); the figures come from `scripts/figures.py`.
+which also holds the seed1 tables), after `scripts/recheck.py` has derived the paired, mode and spread numbers
+from the per-case records; the figures come from `scripts/figures.py`.
 
-In short: the flow is calibrated in its marginals at every observed fraction, and while the signal is weak it
-stays close to the exact posterior (the classifier test is 0.04 to 0.07 above the reference sampler's own
-floor up to f = 0.625). Once the exact posterior gets narrow (f = 0.75 and above) the flow is too wide: 2.0 and
-2.5 times wider than the reference for the chirp mass and the merger time at f = 1. The marginal checks do not
-show this; the rank of the exact log likelihood does. Reusing the posterior at one fraction as the proposal for
+In short: the ranks of the seven fixed functions of the parameters that were tested (chirp mass, merger time,
+cos i, and the cosine and sine of the phase and of twice the sky angle) are uniform within chance at every
+observed fraction. While the signal is weak the flow stays close to the exact posterior: up to f = 0.625 its
+classifier test is above the reference sampler's own floor by a median of -0.006 to 0.067 on 5 paired injections
+per fraction (single injections from -0.066 to 0.232). Once the exact posterior gets narrow (f = 0.75 and above)
+the flow is wider: 2.0 and 2.5 times for the chirp mass and the merger time at f = 1 (medians over 20
+injections). The rank of the exact log likelihood fails at every fraction; it is a joint check, so by itself it
+does not say which part of the flow is wrong, and the width comparison is the separate evidence for wider
+marginals at the high fractions. Reusing the posterior at one fraction as the proposal for
 the next needs 2.0 to 3.6 times fewer likelihood evaluations than starting from the prior, and drawing 2048
 samples from the flow is 39 to 190 times faster than the reference sampler on the T4 (99 times on one CPU
 thread). The second flow shows the same pattern, with small departures in its marginal ranks at f = 1.
@@ -108,17 +113,24 @@ HPD coverage minus the nominal level (columns).
 
 TARP (a negative mean deviation means overconfident).
 
-The marginal ranks look uniform: of the 42 (fraction, function) pairs two have a p value under 0.05 (0.02 and
+The ranks of the seven tested functions look uniform (for each angle only its sine and cosine, see Limits): of the
+42 (fraction, function) pairs two have a p value under 0.05 (0.02 and
 0.03), about what chance gives, and the largest distance is 0.048. Central 90 percent intervals of the three
 linear parameters cover 0.88 to 0.91 of the cases and central 50 percent intervals 0.47 to 0.52. HPD regions
 cover within -0.009 and +0.049 of the nominal level (19 of 24 values above it, so slightly conservative, the
 largest at f = 1), and TARP deviates by at most 0.044.
 
-The exact log likelihood tells a different story. Its rank of the true parameters among the posterior samples is
-far from uniform at every fraction (distance 0.75 at f = 0.25 up to 0.95 at f = 1, p value below 0.005 each
-time): at least 95 percent of the samples have a lower likelihood than the truth, in all 300 cases at f = 1 and
-in 161 of 300 at f = 0.25 (top bin of the histogram). The marginal checks alone would not have shown that the
-flow is wider than the exact posterior.
+The rank of the exact log likelihood gives a different result. The rank of the true parameters among the
+posterior samples is far from uniform at every fraction (distance 0.75 at f = 0.25 up to 0.95 at f = 1, p value
+below 0.005 each time): at least 95 percent of the samples have a lower likelihood than the truth, in all 300
+cases at f = 1 and in 161 of 300 at f = 0.25 (top bin of the histogram). This is a joint goodness-of-fit check of
+the flow against the posterior. Samples that are too wide fail it, but so do samples with the right marginals and
+a wrong dependence between the parameters (`tests/test_metrics.py` has a correlated Gaussian example in which the
+marginal ranks pass and the likelihood rank fails), so the repository does not isolate the cause at every
+fraction. The separate evidence for wider marginals is the width table below: median flow over reference widths
+of 1.25 and 1.26 for the chirp mass and the merger time at f = 0.75 and 2.03 and 2.53 at f = 1. At f = 0.25 the
+median ratios are 1.04 and 1.02 while the likelihood rank already fails, so width alone does not explain the
+failure there.
 
 ### Flow against the exact posterior
 
@@ -153,17 +165,61 @@ flow is wider than the exact posterior.
 
 20 injections, the same at every fraction; 2048 reference particles against 2048 flow samples. First table:
 classifier two-sample test accuracy of the flow against the reference (0.5 is indistinguishable), the same test
-between two reference runs on 5 injections (floor), and the importance sampling efficiency of the flow as a
-proposal for the exact posterior. The median signal to noise ratio of these 20 injections is a little below the
-prior median in the Signal level table. Second table: mode recovery for the pair symmetry. Third table:
-posterior standard deviation over prior standard deviation for the reference (first three columns) and the ratio
-of the flow to the reference (last three).
+between two reference runs, measured on the first 5 of the 20 injections only (floor), and the importance
+sampling efficiency of the flow as a proposal for the exact posterior. The C2ST column is a median over 20
+injections and the floor column a median over 5, so the two are not paired. The median signal to noise ratio of
+these 20 injections is a little below the prior median in the Signal level table. Second table: mode recovery
+for the pair symmetry; "flow weight within 0.2 of half" is the share of bimodal reference cases in which the flow
+puts between 0.3 and 0.7 of its weight on each half-circle of the sky angle. Third table: posterior standard
+deviation over prior standard deviation for the reference (first three columns) and the ratio of the flow to the
+reference (last three).
 
-Up to f = 0.625 the test accuracy is 0.04 to 0.07 above the floor and the widths agree within 11 percent. At
-f = 0.75 the accuracy is 0.68 and the flow is 12 to 26 percent wider, and at f = 1 the accuracy is 0.92 and the
-flow is 2.0, 2.5 and 1.4 times wider for the chirp mass, the merger time and the inclination. The flow keeps both
-images of the posterior in all 59 bimodal cases, and its samples cannot be told from their image under the
-symmetry (0.50).
+The next three tables come from `scripts/recheck.py`, which reads the per-case records in
+`results/eval_reference.json`. The first compares the flow with the floor on the 5 injections that have both
+values: medians, and the range of the single excesses. The second applies to the flow the test that makes the
+reference bimodal (weight between 0.4 and 0.6 and a circular standard deviation under 0.3 rad in each half of the
+sky angle) and counts the passes next to the weight criterion. The third gives the flow over reference width
+ratio for each injection: the median, the range, and the number of injections more than 11 percent from 1.
+
+| f | paired | C2ST | floor | median excess | excess range |
+|---|---|---|---|---|---|
+| 0.25 | 5 | 0.568 | 0.537 | 0.002 | -0.019 to 0.108 |
+| 0.375 | 5 | 0.600 | 0.540 | -0.006 | -0.009 to 0.134 |
+| 0.5 | 5 | 0.573 | 0.559 | 0.062 | -0.027 to 0.134 |
+| 0.625 | 5 | 0.611 | 0.550 | 0.067 | -0.066 to 0.232 |
+| 0.75 | 5 | 0.625 | 0.531 | 0.076 | 0.029 to 0.196 |
+| 1 | 5 | 0.920 | 0.515 | 0.402 | 0.377 to 0.461 |
+
+| f | bimodal cases | weight within 0.2 of half | passes reference test |
+|---|---|---|---|
+| 0.25 | 5 | 5 | 3 |
+| 0.375 | 8 | 8 | 5 |
+| 0.5 | 8 | 8 | 8 |
+| 0.625 | 11 | 11 | 11 |
+| 0.75 | 13 | 13 | 12 |
+| 1 | 14 | 14 | 14 |
+| all | 59 | 59 | 53 |
+
+| f | mass | time | cos i |
+|---|---|---|---|
+| 0.25 | 1.04 (0.84 to 1.27), 6 of 20 | 1.02 (0.98 to 1.05), 0 of 20 | 1.05 (0.89 to 1.20), 5 of 20 |
+| 0.375 | 1.04 (0.88 to 1.26), 5 of 20 | 1.01 (0.96 to 1.13), 1 of 20 | 1.06 (0.98 to 1.17), 3 of 20 |
+| 0.5 | 1.04 (0.85 to 1.42), 8 of 20 | 1.01 (0.95 to 1.24), 3 of 20 | 1.08 (0.89 to 1.33), 9 of 20 |
+| 0.625 | 1.11 (0.89 to 1.96), 10 of 20 | 1.05 (0.89 to 1.54), 9 of 20 | 1.08 (0.98 to 1.33), 7 of 20 |
+| 0.75 | 1.25 (1.00 to 1.60), 14 of 20 | 1.26 (0.93 to 1.44), 14 of 20 | 1.12 (0.99 to 1.28), 13 of 20 |
+| 1 | 2.03 (1.58 to 4.81), 20 of 20 | 2.53 (1.94 to 4.59), 20 of 20 | 1.38 (1.17 to 1.91), 20 of 20 |
+
+Up to f = 0.625 the median excess over the floor on the paired injections is between -0.006 and 0.067, and single
+excesses range from -0.066 to 0.232: with 5 injections that cannot be told from zero or from 0.07. At f = 0.75 all
+five excesses are positive (0.029 to 0.196, median 0.076), and at f = 1 they are 0.377 to 0.461. The median width
+ratios are within 11 percent of 1 up to f = 0.625, but single injections are not: at f = 0.625, 10 of 20 chirp mass
+ratios are more than 11 percent from 1, between 0.89 and 1.96. At f = 0.75 the median flow is 12 to 26 percent
+wider, and at f = 1 it is 2.0, 2.5 and 1.4 times wider for the chirp mass, the merger time and the inclination
+(medians; the classifier test gives 0.68 and 0.92). In all 59 bimodal cases the flow puts between 0.3 and 0.7 of
+its weight on each half-circle, but that criterion alone cannot tell a two-mode flow from a broad one (a uniform
+flow passes it). With the reference's own bimodality test the count is 53 of 59, and the six others fail the
+spread condition. The flow's samples cannot be told from their image under the symmetry (0.50), which checks the
+symmetry and not the agreement with the reference.
 
 ### Reusing the posterior at one fraction as the proposal for the next
 
@@ -223,11 +279,13 @@ in their titles, are in `results/tables.txt`; this is the side by side summary.
 | 1 | -5.180 | 4 of 42 | 0.049 | 0.771 to 0.952 | 299 of 300 | -0.015 to 0.037 | 0.030 | 0.655 | 0.930 | 2.19 / 2.61 / 1.35 |
 
 Training was as stable (no skipped step, 20.5 minutes) and the main findings repeat. The log likelihood rank
-fails at every fraction in both runs, and against the reference the departure appears only at the end: test
+fails at every fraction in both runs, and against the reference the departure is clearest at the end: test
 accuracy 0.66 at f = 0.75 and 0.93 at f = 1, with the flow 2.2, 2.6 and 1.35 times wider at f = 1. Up to
-f = 0.625 its accuracy is 0.01 to 0.03 above the reference floor (0.57 to 0.59 against 0.55 to 0.57), a little
-closer than seed 0 (0.04 to 0.07); the floors come from 5 injections that differ between the two seeds. It keeps
-both images of the posterior in all 49 bimodal cases. The marginal ranks are a little worse in this run: four of
+f = 0.625 the paired median excess over the floor is 0.020 to 0.055 (seed 0: -0.006 to 0.067; both from 5
+injections per fraction, and the paired injections differ between the two seeds, so I cannot say that either run
+is closer to the reference). Its weight on each half-circle is between 0.3 and 0.7 in all 49 bimodal cases, and
+35 of the 49 pass the reference's own bimodality test (seed 0: 53 of 59); the per-fraction tables for this seed
+are in `results/tables.txt`. The marginal ranks are a little worse in this run: four of
 42 p values are under 0.05 (0.015 for the phase cosine at f = 0.75; 0.017, 0.027 and 0.028 for the chirp mass,
 the phase sine and the merger time at f = 1), against two in seed 0 and none at f = 1, and its HPD regions are
 conservative at f = 1 (+0.037, +0.037 and +0.026 at levels 0.5, 0.68 and 0.9). With only two runs, I cannot
@@ -330,7 +388,19 @@ exact pair symmetry is applied to a random half of the particles, which is a val
 equal weight; `check_reference.py` also runs the sampler without it and reports how far it lands. Checks in the
 tests: a bimodal Gaussian mixture with known weights and evidence, a periodic bump across the boundary,
 importance weights from a wrong proposal, the symmetry move on a two-mode target, and the exact grid posterior of
-$(\phi_c, \alpha)$.
+$(\phi_c, \alpha)$. The grid check in `check_reference.py` uses the sampler defaults, 2000 particles, 6 moves and an
+effective sample share of 0.5 (50,000 likelihood evaluations); the two-run comparison uses 2048 particles, 20
+moves and 0.7, the values stored at the top of `reference_check.json`.
+
+The sampler refuses to return a result it cannot stand behind. `tempered_smc` raises `SMCError` when the schedule
+ends before $\beta = 1$ (`max_stages`, 400 by default; the largest stage count in the saved runs is 14), when even
+the smallest temperature step (1e-6) leaves fewer effective particles than requested, when the proposal weights
+leave under 1 percent of the particles effective (the smallest in the saved runs is 7 percent), or when under 10
+percent of the particles are distinct after a stage (the saved final samples are at least 98 percent distinct;
+`results/sampler_health.json`). With `strict=False` it returns the result with `converged` false and a NaN
+evidence instead. Every result reports the temperature reached, the smallest effective sample share and the
+number of distinct particles. Without these checks a Gaussian likelihood of width 1e-8 under a unit uniform
+prior collapsed all particles to one value and still returned an evidence.
 
 Flow. A coupling flow on the unit cube with a uniform base, rational-quadratic splines, and a residual MLP
 embedding of the whitened strain and $f$. Angles are circular: the spline has equal slopes at both ends of the
@@ -362,9 +432,20 @@ the figure divides each count by its uniform expectation.
   calibration and against the reference only, the sequential and cost numbers use the first). One learning rate
   worked (1.5e-4; 3e-4 diverged and nothing else was compared). I did not test whether longer training or a
   larger flow closes the gap at f = 0.75 and above, and nothing was tested outside the training distribution.
-- The comparison with the exact posterior rests on 20 injections per fraction and its floor on 5. The test
-  accuracies are medians over few cases from a small classifier, and two reference runs already differ by up to
-  0.62 (medians 0.51 to 0.55) rather than 0.5.
+- The comparison with the exact posterior rests on 20 injections per fraction and its floor on 5, so the excess
+  over the floor comes from 5 paired injections. The test accuracies are medians over few cases from a small
+  classifier, and two reference runs already differ by up to 0.62 (medians 0.51 to 0.55) rather than 0.5.
+- The calibration checks rank seven fixed functions of the parameters; for an angle these are its sine and cosine
+  only. A distribution with the right sine and cosine marginals but another shape (a second harmonic, or an
+  imbalance between quadrants) passes them, so the calibration of the angles themselves is not established:
+  `tests/test_metrics.py` has an example in which both rank tests pass while the share of draws with a positive
+  sine of twice the angle is above 0.7 instead of 0.5.
+- The log likelihood rank is a joint check. The repository shows that it fails, not which part of the flow causes
+  it at each fraction: a wrong dependence between the parameters would give the same pattern as marginals that
+  are too wide.
+- The two modes of the flow are checked by the weight on each half-circle, by the symmetry test and, on the saved
+  records, by the reference's own bimodality test (53 of 59 and 35 of 49 cases pass). The positions of the flow's
+  modes against the reference modes were not measured.
 - The reference sampler is checked on analytic and grid problems and by agreement between independent runs, not
   proved correct on every observation; ensemble moves may mix slowly on thin curved ridges, and its evidence
   estimate is noisier than its samples.
