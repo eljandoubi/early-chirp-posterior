@@ -63,6 +63,23 @@ def uniform_ks(ranks: torch.Tensor, n_samples: int) -> dict:
     return dict(ks=d, p_value=kolmogorov_pvalue(d, int(counts.sum().item())))
 
 
+def rank_histogram(ranks: torch.Tensor, n_samples: int, bins: int = 20) -> dict:
+    """Counts of ranks 0..L in equal bins of rank / (L + 1), and the uniform counts."""
+    total = n_samples + 1
+    index = (ranks.long().cpu() * bins) // total
+    cuts = [-(-k * total // bins) for k in range(bins + 1)]
+    share = torch.diff(torch.tensor(cuts, dtype=torch.float64))
+    return dict(
+        counts=torch.bincount(index, minlength=bins).tolist(),
+        expected=(share * ranks.numel() / total).tolist(),
+    )
+
+
+def rank_summary(ranks: torch.Tensor, n_samples: int) -> dict:
+    """Kolmogorov distance, its p value and the rank histogram."""
+    return dict(**uniform_ks(ranks, n_samples), hist=rank_histogram(ranks, n_samples))
+
+
 def hpd_coverage(log_q_truth, log_q_samples, levels) -> dict:
     """Share of cases whose truth lies in the c highest density region."""
     above = (log_q_samples > log_q_truth[:, None]).double().mean(1)

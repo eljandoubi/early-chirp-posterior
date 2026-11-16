@@ -64,6 +64,7 @@ def test_calibration_returns_every_statistic():
     assert row["n_obs"] == 128 and set(row["hpd"]) == {"0.5", "0.68", "0.9", "0.95"}
     assert len(row["sbc"]) == 8 and "log_likelihood" in row["sbc"]
     assert all(0 <= v["ks"] <= 1 for v in row["sbc"].values())
+    assert all(sum(v["hist"]["counts"]) in (12, 4) for v in row["sbc"].values())
     assert len(row["central"]["0.9"]) == 3
     assert {"max_deviation", "mean_deviation"} <= set(row["tarp"])
 

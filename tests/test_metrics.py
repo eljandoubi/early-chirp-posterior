@@ -1,5 +1,6 @@
 import math
 
+import pytest
 import torch
 
 from chirpvi.metrics import (
@@ -12,6 +13,8 @@ from chirpvi.metrics import (
     mode_labels,
     mode_summary,
     pair_image,
+    rank_histogram,
+    rank_summary,
     sbc_ranks,
     tarp,
     tarp_summary,
@@ -44,6 +47,26 @@ def test_ranks_of_an_overconfident_posterior_are_not_uniform():
     )
     ranks = sbc_ranks(truth, samples)
     assert uniform_ks(ranks[:, 0], 99)["p_value"] < 1e-6
+
+
+def test_rank_histogram_counts_match_the_uniform_expectation_for_every_rank_once():
+    out = rank_histogram(torch.arange(201), 200)
+    assert sum(out["counts"]) == 201 and len(out["counts"]) == 20
+    assert out["counts"] == [int(e) for e in out["expected"]]
+    assert sorted(set(out["counts"])) == [10, 11]
+
+
+def test_rank_histogram_puts_extreme_ranks_in_the_end_bins():
+    out = rank_histogram(torch.tensor([0, 0, 200]), 200)
+    assert out["counts"][0] == 2 and out["counts"][-1] == 1
+    assert sum(out["expected"]) == pytest.approx(3)
+
+
+def test_rank_summary_keeps_the_distance_and_adds_the_histogram():
+    ranks = torch.arange(100)
+    out = rank_summary(ranks, 99)
+    assert out["ks"] == uniform_ks(ranks, 99)["ks"]
+    assert sum(out["hist"]["counts"]) == 100
 
 
 def test_kolmogorov_pvalue_limits():

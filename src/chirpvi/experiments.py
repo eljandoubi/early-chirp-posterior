@@ -17,10 +17,10 @@ from .metrics import (
     is_bimodal,
     mode_summary,
     pair_image,
+    rank_summary,
     sbc_ranks,
     tarp,
     tarp_summary,
-    uniform_ks,
     widths,
 )
 from .reference import (
@@ -111,7 +111,7 @@ def calibration(
         u_true, u_samp = sim.to_unit(theta), sim.to_unit(samples)
         ranks = sbc_ranks(u_true, u_samp)
         sbc = {
-            name: uniform_ks(ranks[:, k], n_samples)
+            name: rank_summary(ranks[:, k], n_samples)
             for k, name in enumerate(FUNCTION_NAMES)
         }
         cases = n_test if loglik_cases is None else min(loglik_cases, n_test)
@@ -121,7 +121,7 @@ def calibration(
                 torch.cat([theta[i : i + 1], samples[i]]), n_obs
             )
             ell_ranks.append((ell[1:] < ell[0]).sum())
-        sbc["log_likelihood"] = uniform_ks(torch.stack(ell_ranks), n_samples)
+        sbc["log_likelihood"] = rank_summary(torch.stack(ell_ranks), n_samples)
         reference = torch.rand(
             n_test, 5, generator=gen, dtype=u_true.dtype, device=sim.device
         )
