@@ -14,7 +14,9 @@ PRESETS = {"smoke": dict(n=400), "full": dict(n=20000)}
 def main():
     args = parser(__doc__).parse_args()
     sim = Simulator(device=args.device)
-    theta = sim.sample_prior(size(args, PRESETS)["n"], make_generator(args.seed))
+    theta = sim.sample_prior(
+        size(args, PRESETS)["n"], make_generator(args.seed, sim.device)
+    )
     quantiles = torch.tensor([0.1, 0.5, 0.9], dtype=torch.float64)
     table = {}
     for f in FRACTIONS:
