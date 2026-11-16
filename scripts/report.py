@@ -207,19 +207,12 @@ def sequential_table(folder):
 
 
 def cost(folder):
-    t = load(folder, "timing.json")
-    if t:
-        table(
-            "Cost of 1000 posterior samples",
-            [
-                "device",
-                "flow one",
-                "flow amortised",
-                "reference",
-                "reference evaluations",
-                "load average",
-            ],
-            [
+    paths = sorted(folder.glob("timing_*.json")) or [folder / "timing.json"]
+    rows = []
+    for path in paths:
+        t = load(folder, path.name)
+        if t:
+            rows.append(
                 [
                     t["device"],
                     num(t["flow_seconds_one"], 3),
@@ -228,7 +221,19 @@ def cost(folder):
                     t["reference_evals"],
                     num(t["load_average"], 1),
                 ]
+            )
+    if rows:
+        table(
+            f"Cost of {t['n_samples']} posterior samples ({t['n_obs']} observed)",
+            [
+                "device",
+                "flow one",
+                "flow amortised",
+                "reference",
+                "reference evaluations",
+                "load average",
             ],
+            rows,
         )
 
 
