@@ -96,6 +96,7 @@ def tempered_smc(
     n_moves=6,
     generator=None,
     max_stages=400,
+    image=None,
 ):
     """Move particles from pi_start to pi_end along (1 - b) log_start + b log_end.
 
@@ -104,6 +105,9 @@ def tempered_smc(
     when log_q is None, otherwise a density with log values log_q. The returned
     log evidence is log of the end mass relative to the prior when log_q is
     given, and of the end mass relative to the start mass when it is None.
+    image, if given, is an exact symmetry of both densities (an involution that
+    keeps the prior box): after every stage each particle is mapped through it
+    with probability one half, which is a valid move and balances the images.
     """
     t0 = time.perf_counter()
     x = particles.clone()
@@ -129,6 +133,9 @@ def tempered_smc(
         x, ls, le = x[idx].clone(), ls[idx].clone(), le[idx].clone()
         for _ in range(n_moves):
             stretch_move(x, ls, le, beta, logp, lo, hi, periodic, generator, counter)
+        if image is not None:
+            flip = torch.rand(n, generator=generator, dtype=x.dtype, device=x.device)
+            x = torch.where((flip < 0.5)[:, None], image(x), x)
         stages += 1
     return SMCResult(
         samples=x,

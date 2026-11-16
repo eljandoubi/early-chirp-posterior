@@ -17,6 +17,7 @@ def sequential_step(
     n_moves: int = 6,
     ess_frac: float = 0.5,
     generator: torch.Generator | None = None,
+    symmetrize: bool = True,
 ) -> SMCResult:
     """Move particles from the posterior of the first n_prev samples to n_next.
 
@@ -39,6 +40,7 @@ def sequential_step(
         ess_frac=ess_frac,
         n_moves=n_moves,
         generator=generator,
+        image=sim.pair_image if symmetrize else None,
     )
 
 
@@ -50,12 +52,21 @@ def sequential_path(
     first_log_q: torch.Tensor | None = None,
     n_moves: int = 6,
     generator: torch.Generator | None = None,
+    ess_frac: float = 0.5,
 ) -> list[dict]:
     """Run sequential_step along increasing sample counts; one record per step."""
     particles, log_q, records = first, first_log_q, []
     for n_prev, n_next in zip(path[:-1], path[1:], strict=True):
         res = sequential_step(
-            sim, w_obs, n_prev, n_next, particles, log_q, n_moves, generator=generator
+            sim,
+            w_obs,
+            n_prev,
+            n_next,
+            particles,
+            log_q,
+            n_moves,
+            ess_frac,
+            generator=generator,
         )
         records.append(dict(n_obs=n_next, result=res))
         particles, log_q = res.samples, None

@@ -62,21 +62,22 @@ def test_sampler_matches_the_exact_grid_posterior_of_the_angles():
     assert out["symmetry_error"] < 1e-9
 
 
-def test_five_dimensional_reference_covers_the_injection():
+def test_five_dimensional_reference_finds_the_injection_and_repeats():
     sim = Simulator()
     n_obs = 256
     theta, w = injection(sim, n_obs, cosi=0.6)
-    res = reference_posterior(
-        sim,
-        w,
-        n_obs,
-        n_particles=256,
-        n_moves=4,
-        generator=torch.Generator().manual_seed(4),
-    )
-    u = sim.to_unit(res.samples)
-    assert (u >= 0).all() and (u <= 1).all()
-    assert res.samples.shape == (256, 5)
-    mc = res.samples[:, 0]
-    assert abs(mc.mean() - theta[0, 0]) < 5 * mc.std()
-    assert mc.std() < 0.5 * (sim.hi[0] - sim.lo[0]) / math.sqrt(12)
+    runs = [
+        reference_posterior(
+            sim, w, n_obs, 1024, 15, 0.7, torch.Generator().manual_seed(seed)
+        )
+        for seed in (4, 5)
+    ]
+    prior_std = (sim.hi[0] - sim.lo[0]) / math.sqrt(12)
+    for res in runs:
+        u = sim.to_unit(res.samples)
+        assert (u >= 0).all() and (u <= 1).all() and res.samples.shape == (1024, 5)
+        mc = res.samples[:, 0]
+        assert abs(mc.mean() - theta[0, 0]) < 5 * mc.std()
+        assert mc.std() < 0.2 * prior_std
+    a, b = runs[0].samples[:, 0], runs[1].samples[:, 0]
+    assert abs(a.mean() - b.mean()) < 3 * a.std()

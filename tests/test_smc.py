@@ -94,3 +94,20 @@ def test_step_size_and_resampling_helpers():
     logw = torch.log(torch.tensor([0.5, 0.25, 0.25, 0.0], dtype=F64) + 1e-300)
     idx = systematic_resample(logw, torch.Generator().manual_seed(0))
     assert idx.numel() == 4 and (idx != 3).all()
+
+
+def test_symmetry_move_balances_images_and_keeps_the_evidence():
+    def logp(x):
+        bump = lambda c: torch.exp(-0.5 * ((x[:, 0] - c) / 0.03) ** 2)  # noqa: E731
+        ell = torch.log(0.5 * bump(0.25) + 0.5 * bump(0.75))
+        ell = ell - 0.5 * ((x[:, 1] - 0.5) / 0.05) ** 2
+        return torch.zeros_like(ell), ell
+
+    def image(x):
+        return torch.stack([1.0 - x[:, 0], x[:, 1]], 1)
+
+    res = run(logp, 2, torch.zeros(2, dtype=torch.bool), image=image)
+    left = (res.samples[:, 0] < 0.5).double().mean().item()
+    assert abs(left - 0.5) < 0.03
+    truth = math.log(0.03 * 0.05 * 2 * math.pi)
+    assert abs(res.log_evidence - truth) < 0.15

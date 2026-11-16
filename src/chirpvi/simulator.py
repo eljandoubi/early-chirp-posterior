@@ -29,6 +29,13 @@ class Simulator:
     def to_unit(self, theta: torch.Tensor) -> torch.Tensor:
         return (theta - self.lo) / (self.hi - self.lo)
 
+    def pair_image(self, theta: torch.Tensor) -> torch.Tensor:
+        """Exact symmetry of prior and likelihood: phase + pi and sky angle + pi/2."""
+        out = theta.clone()
+        out[:, 2] = torch.remainder(out[:, 2] + math.pi, self.hi[2])
+        out[:, 4] = torch.remainder(out[:, 4] + 0.5 * math.pi, self.hi[4])
+        return out
+
     def from_unit(self, u: torch.Tensor) -> torch.Tensor:
         return self.lo + u * (self.hi - self.lo)
 

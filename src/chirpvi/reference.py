@@ -37,8 +37,13 @@ def reference_posterior(
     n_moves: int = 6,
     ess_frac: float = 0.5,
     generator: torch.Generator | None = None,
+    symmetrize: bool = True,
 ) -> SMCResult:
-    """Posterior samples of the exact likelihood, from the prior by tempering."""
+    """Posterior samples of the exact likelihood, from the prior by tempering.
+
+    symmetrize adds the exact pair symmetry as a move, so the two images get equal
+    weight by construction (the plain sampler has to find that balance itself).
+    """
     lik = Likelihood(sim, w_obs)
 
     def logp(theta):
@@ -55,6 +60,7 @@ def reference_posterior(
         ess_frac=ess_frac,
         n_moves=n_moves,
         generator=generator,
+        image=sim.pair_image if symmetrize else None,
     )
 
 

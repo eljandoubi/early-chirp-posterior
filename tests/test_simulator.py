@@ -33,6 +33,9 @@ def test_pair_symmetry_leaves_both_channels_unchanged():
     image[:, 2] = (image[:, 2] + math.pi) % (2 * math.pi)
     image[:, 4] = (image[:, 4] + math.pi / 2) % math.pi
     assert (sim.signal(theta) - sim.signal(image)).abs().max() < 1e-9
+    assert (sim.pair_image(theta) - image).abs().max() < 1e-12
+    twice = sim.pair_image(sim.pair_image(theta))
+    assert (twice - theta).abs().max() < 1e-12
 
 
 def test_phase_derivative_matches_the_frequency_law():

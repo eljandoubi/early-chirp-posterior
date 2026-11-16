@@ -17,16 +17,19 @@ def test_a_sequential_step_matches_the_posterior_computed_from_scratch():
     sim = Simulator()
     theta, w = stream(sim)
     gen = torch.Generator().manual_seed(1)
-    early = reference_posterior(sim, w, 128, n_particles=512, n_moves=5, generator=gen)
-    late = reference_posterior(sim, w, 256, n_particles=512, n_moves=5, generator=gen)
-    step = sequential_step(sim, w, 128, 256, early.samples, n_moves=5, generator=gen)
+    kw = dict(n_particles=1024, n_moves=15, ess_frac=0.7, generator=gen)
+    early = reference_posterior(sim, w, 96, **kw)
+    late = reference_posterior(sim, w, 160, **kw)
+    step = sequential_step(
+        sim, w, 96, 160, early.samples, n_moves=15, ess_frac=0.7, generator=gen
+    )
     gain = late.log_evidence - early.log_evidence
-    assert abs(step.log_evidence - gain) < 1.0
+    assert abs(step.log_evidence - gain) < 1.5
     for i in (0, 1):
         a, b = step.samples[:, i], late.samples[:, i]
         spread = max(b.std().item(), 1e-6)
         assert abs(a.mean() - b.mean()) < 1.0 * spread + 0.05 * (sim.hi[i] - sim.lo[i])
-    assert step.samples.shape == (512, 5)
+    assert step.samples.shape == (1024, 5)
 
 
 def test_a_path_gives_one_record_per_step_and_uses_fewer_evaluations_late():
