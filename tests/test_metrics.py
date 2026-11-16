@@ -163,3 +163,42 @@ def test_widths_and_importance_efficiency():
     log_q = torch.randn(5000, generator=g, dtype=torch.float64)
     assert abs(importance_efficiency(log_q, log_q) - 1.0) < 1e-12
     assert importance_efficiency(5 * log_q, log_q) < 0.2
+
+
+def test_a_wrong_dependence_passes_the_marginal_ranks_and_fails_the_likelihood_rank():
+    g = gen(941)
+    rho = 0.995
+    base = torch.randn(1000, 2, generator=g, dtype=torch.float64)
+    second = rho * base[:, 0] + math.sqrt(1 - rho**2) * base[:, 1]
+    truth = torch.stack((base[:, 0], second), -1)
+    proposal = torch.randn(1000, 200, 2, generator=g, dtype=torch.float64)
+
+    def log_density(v):
+        quad = v[..., 0] ** 2 - 2 * rho * v[..., 0] * v[..., 1] + v[..., 1] ** 2
+        return -quad / (2 * (1 - rho**2))
+
+    for i in (0, 1):
+        ranks = (proposal[..., i] < truth[:, None, i]).sum(1)
+        assert uniform_ks(ranks, 200)["p_value"] > 0.01
+    ranks = (log_density(proposal) < log_density(truth)[:, None]).sum(1)
+    assert uniform_ks(ranks, 200)["p_value"] < 1e-6
+
+
+def test_sine_and_cosine_ranks_do_not_see_a_second_harmonic_of_an_angle():
+    g = gen(902)
+    truth = torch.rand(1000, 5, generator=g, dtype=torch.float64)
+    candidate = torch.rand(600000, generator=g, dtype=torch.float64)
+    accept = torch.rand(600000, generator=g, dtype=torch.float64)
+    density = (1 + 0.9 * torch.sin(4 * math.pi * candidate)) / 1.9
+    draws = candidate[accept < density][:200000].reshape(1000, 200)
+    samples = torch.rand(1000, 200, 5, generator=g, dtype=torch.float64)
+    samples[..., 2] = draws
+    ranks = sbc_ranks(truth, samples)
+    for k in (3, 4):
+        assert uniform_ks(ranks[:, k], 200)["p_value"] > 0.01
+
+    def upper_share(u):
+        return (torch.sin(4 * math.pi * u) > 0).double().mean().item()
+
+    assert abs(upper_share(truth[:, 2]) - 0.5) < 0.05
+    assert upper_share(draws) > 0.7
