@@ -2,12 +2,8 @@ import math
 
 import torch
 
-from chirpvi.reference import (
-    Likelihood,
-    angle_grid_posterior,
-    angle_posterior,
-    reference_posterior,
-)
+from chirpvi.experiments import grid_check
+from chirpvi.reference import Likelihood, reference_posterior
 from chirpvi.simulator import Simulator
 
 
@@ -59,28 +55,11 @@ def test_pair_symmetry_of_the_likelihood():
 
 
 def test_sampler_matches_the_exact_grid_posterior_of_the_angles():
-    sim = Simulator()
-    n_obs = 192
-    theta, w = injection(sim, n_obs)
-    prob, log_z = angle_grid_posterior(sim, w, n_obs, theta, n_grid=120)
-    res = angle_posterior(
-        sim,
-        w,
-        n_obs,
-        theta,
-        n_particles=1500,
-        generator=torch.Generator().manual_seed(2),
-    )
-    x = res.samples
-    for axis, span in ((0, 2 * math.pi), (1, math.pi)):
-        pmf = prob.sum(1 - axis)
-        edges = torch.arange(1, 121, dtype=torch.float64) / 120 * span
-        cdf = torch.cumsum(pmf, 0)
-        ecdf = (x[:, axis][:, None] <= edges[None, :]).double().mean(0)
-        assert (cdf - ecdf).abs().max() < 0.06
-    first = ((x[:, 1] - 0.9 + math.pi / 4) % math.pi) < math.pi / 2
-    assert abs(first.double().mean().item() - 0.5) < 0.06
-    assert abs(res.log_evidence - log_z) < 0.3
+    out = grid_check(Simulator(), seed=0)
+    assert out["ks_phase"] < 0.06 and out["ks_sky"] < 0.06
+    assert abs(out["mode_weight"] - 0.5) < 0.06
+    assert abs(out["sampler_log_evidence"] - out["grid_log_evidence"]) < 0.3
+    assert out["symmetry_error"] < 1e-9
 
 
 def test_five_dimensional_reference_covers_the_injection():

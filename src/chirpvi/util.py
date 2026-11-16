@@ -39,11 +39,24 @@ def circular_std(x: torch.Tensor, dim: int = -1) -> torch.Tensor:
     return torch.sqrt(-2 * torch.log(r.clamp_min(1e-12)))
 
 
+def clean(x):
+    """Make a result tree valid JSON: string keys, lists, no NaN or infinity."""
+    if isinstance(x, torch.Tensor):
+        x = x.tolist()
+    if isinstance(x, dict):
+        return {str(k): clean(v) for k, v in x.items()}
+    if isinstance(x, (list, tuple)):
+        return [clean(v) for v in x]
+    if isinstance(x, float) and not math.isfinite(x):
+        return None
+    return x
+
+
 def write_json(path: str | os.PathLike, data: dict) -> str:
     """Write a result file with sorted keys and return its path."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data, indent=1, sort_keys=True) + "\n")
+    path.write_text(json.dumps(clean(data), indent=1, sort_keys=True) + "\n")
     return str(path)
 
 

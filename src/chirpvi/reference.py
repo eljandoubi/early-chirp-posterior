@@ -66,7 +66,7 @@ def angle_grid_posterior(sim, w_obs, n_obs, fixed, n_grid=160):
     likelihood over the torus).
     """
     lik = Likelihood(sim, w_obs)
-    pc = (torch.arange(n_grid, dtype=torch.float64) + 0.5) / n_grid
+    pc = (torch.arange(n_grid, dtype=torch.float64, device=sim.device) + 0.5) / n_grid
     phic = sim.lo[2] + pc * (sim.hi[2] - sim.lo[2])
     alpha = sim.lo[4] + pc * (sim.hi[4] - sim.lo[4])
     grid = torch.stack(torch.meshgrid(phic, alpha, indexing="ij"), -1).reshape(-1, 2)
@@ -90,9 +90,10 @@ def angle_posterior(sim, w_obs, n_obs, fixed, n_particles=1024, generator=None):
         return torch.zeros_like(ell), ell
 
     lo, hi = sim.lo[free], sim.hi[free]
-    x0 = lo + torch.rand(n_particles, 2, generator=generator, dtype=lo.dtype) * (
-        hi - lo
+    unit = torch.rand(
+        n_particles, 2, generator=generator, dtype=lo.dtype, device=lo.device
     )
+    x0 = lo + unit * (hi - lo)
     return tempered_smc(
         logp,
         x0,
