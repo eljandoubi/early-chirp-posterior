@@ -34,6 +34,7 @@ def main():
         args.seed + 2,
         cfg["moves"],
         cfg["ess"],
+        log=print,
     )
     print(write_json(results_dir(args) / "sequential.json", res))
 

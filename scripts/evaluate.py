@@ -76,6 +76,7 @@ def main():
             cfg["floor_cases"],
             cfg["moves"],
             cfg["ess"],
+            log=print,
         )
         print(write_json(out / "eval_reference.json", res))
     if args.part in ("timing", "all"):

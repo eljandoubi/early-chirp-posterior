@@ -71,6 +71,7 @@ def test_calibration_returns_every_statistic():
 
 def test_reference_comparison_records_and_summary():
     sim = Simulator()
+    lines = []
     out = compare_with_reference(
         sim,
         tiny_posterior(sim),
@@ -80,8 +81,10 @@ def test_reference_comparison_records_and_summary():
         seed=2,
         floor_cases=1,
         n_moves=2,
+        log=lines.append,
     )
     assert len(out["records"]) == 2
+    assert [(x["fraction"], x["case"]) for x in lines] == [(0.5, 0), (0.5, 1)]
     rec = out["records"][0]
     assert 0 <= rec["c2st"] <= 1 and 0 <= rec["is_efficiency"] <= 1
     assert 0 < rec["ref_distinct"] <= 1
@@ -94,8 +97,24 @@ def test_reference_comparison_records_and_summary():
     }
 
 
+def test_the_floor_c2st_repeats_for_one_seed():
+    sim = Simulator()
+    kwargs = dict(
+        fractions=(0.5,),
+        n_cases=1,
+        n_particles=64,
+        seed=4,
+        floor_cases=1,
+        n_moves=2,
+    )
+    first = compare_with_reference(sim, tiny_posterior(sim), **kwargs)
+    second = compare_with_reference(sim, tiny_posterior(sim), **kwargs)
+    assert first["records"][0]["c2st_floor"] == second["records"][0]["c2st_floor"]
+
+
 def test_sequential_experiment_compares_three_ways():
     sim = Simulator()
+    lines = []
     out = sequential_experiment(
         sim,
         tiny_posterior(sim),
@@ -104,7 +123,9 @@ def test_sequential_experiment_compares_three_ways():
         n_particles=64,
         seed=3,
         n_moves=2,
+        log=lines.append,
     )
+    assert [x["case"] for x in lines] == [0]
     assert set(out["summary"]) == {
         f"{v}@160" for v in ("scratch", "chain_sampler", "chain_flow")
     }

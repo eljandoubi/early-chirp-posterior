@@ -194,8 +194,10 @@ def compare_with_reference(
     floor_cases=3,
     n_moves=6,
     ess_frac=0.5,
+    log=None,
 ):
     """Flow against the exact reference on injections shared across fractions."""
+    torch.manual_seed(seed)
     theta, w_full = make_streams(sim, n_cases, seed)
     records = []
     for f in fractions:
@@ -243,13 +245,24 @@ def compare_with_reference(
                     u_ref, sim.to_unit(second.samples), sim.periodic
                 )
             records.append(rec)
+            if log:
+                log(dict(fraction=f, case=j, c2st=rec["c2st"], seconds=ref.seconds))
     return dict(records=records, summary=summarise_reference(records, fractions))
 
 
 def sequential_experiment(
-    sim, posterior, path, n_cases, n_particles, seed, n_moves=6, ess_frac=0.5
+    sim,
+    posterior,
+    path,
+    n_cases,
+    n_particles,
+    seed,
+    n_moves=6,
+    ess_frac=0.5,
+    log=None,
 ):
     """Cost and quality of three ways to reach each fraction along one stream."""
+    torch.manual_seed(seed)
     theta, w_full = make_streams(sim, n_cases, seed)
     rows = []
     for j in range(n_cases):
@@ -335,6 +348,8 @@ def sequential_experiment(
                 mode_gap=None,
             )
         )
+        if log:
+            log(dict(case=j, rows=len(rows)))
     table = {}
     for variant in ("scratch", "chain_sampler", "chain_flow"):
         for n in path[1:]:
