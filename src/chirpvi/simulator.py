@@ -38,27 +38,28 @@ class Simulator:
         )
         return self.from_unit(u)
 
-    def phase_and_amplitude(self, theta: torch.Tensor):
-        """GW phase and Newtonian amplitude on the grid, both of shape (B, n)."""
+    def phase_and_amplitude(self, theta: torch.Tensor, n: int | None = None):
+        """GW phase and Newtonian amplitude on the first n grid points."""
         mc, tc, phic = theta[:, 0:1], theta[:, 1:2], theta[:, 2:3]
-        tau = tc - self.t[None, :]
+        tau = tc - self.t[None, :n]
         chirp_time = mc * T_SUN
         phase = phic - 2.0 * (tau / (5.0 * chirp_time)) ** 0.625
         amp = self.problem.amplitude * (mc / 20.0) ** 1.25 * tau**-0.25
         return phase, amp
 
-    def signal(self, theta: torch.Tensor) -> torch.Tensor:
+    def signal(self, theta: torch.Tensor, n: int | None = None) -> torch.Tensor:
         """Noise free two channel strain of shape (B, 2, n)."""
-        phase, amp = self.phase_and_amplitude(theta)
+        phase, amp = self.phase_and_amplitude(theta, n)
         cosi, alpha = theta[:, 3:4], theta[:, 4:5]
         hp = amp * 0.5 * (1.0 + cosi**2) * torch.cos(phase)
         hx = amp * cosi * torch.sin(phase)
-        psi2 = 2.0 * (alpha + self.problem.omega * self.t[None, :])
+        psi2 = 2.0 * (alpha + self.problem.omega * self.t[None, :n])
         c, s = torch.cos(psi2), torch.sin(psi2)
         return torch.stack([c * hp + s * hx, -s * hp + c * hx], dim=1)
 
-    def whitened_signal(self, theta: torch.Tensor) -> torch.Tensor:
-        return self.signal(theta) @ self.whiten.T
+    def whitened_signal(self, theta: torch.Tensor, n: int | None = None):
+        """Whitened signal of the first n samples (the whitener is causal)."""
+        return self.signal(theta, n) @ self.whiten[:n, :n].T
 
     def observe(self, theta, n_obs, generator: torch.Generator | None = None):
         """Whitened data (B, 2, n): signal plus unit noise, zero after n_obs."""
