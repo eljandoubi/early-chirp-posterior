@@ -17,6 +17,11 @@ def num(x, digits=3):
     return "n/a" if x is None else f"{x:.{digits}f}"
 
 
+def seed_tag(name: str, stem: str) -> str:
+    """Title suffix for a file like eval_flow_seed1.json; empty for the base file."""
+    return "" if name == f"{stem}.json" else ", " + name[len(stem) + 1 : -5]
+
+
 def table(title, headers, rows):
     print(f"\n### {title}\n")
     print("| " + " | ".join(headers) + " |")
@@ -100,33 +105,35 @@ def training(folder):
         )
 
 
-def calibration_tables(folder):
-    ev = load(folder, "eval_flow.json")
+def calibration_tables(folder, name="eval_flow.json"):
+    ev = load(folder, name)
     if not ev:
         return
+    tag = seed_tag(name, "eval_flow")
     names = list(next(iter(ev.values()))["sbc"])
     rows = [
         [f] + [f"{v['sbc'][n]['ks']:.3f} ({v['sbc'][n]['p_value']:.2f})" for n in names]
         for f, v in ev.items()
     ]
-    table("SBC: Kolmogorov distance of ranks (p value)", ["f"] + names, rows)
+    table(f"SBC: Kolmogorov distance of ranks (p value){tag}", ["f"] + names, rows)
     rows = [[f] + [num(v["hpd"][c] - float(c)) for c in LEVELS] for f, v in ev.items()]
-    table("HPD coverage minus level", ["f"] + list(LEVELS), rows)
+    table(f"HPD coverage minus level{tag}", ["f"] + list(LEVELS), rows)
     rows = [
         [f, num(v["tarp"]["max_deviation"]), num(v["tarp"]["mean_deviation"])]
         for f, v in ev.items()
     ]
     table(
-        "TARP (negative mean deviation: overconfident)",
+        f"TARP (negative mean deviation: overconfident){tag}",
         ["f", "max deviation", "mean deviation"],
         rows,
     )
 
 
-def reference_tables(folder):
-    ev = load(folder, "eval_reference.json")
+def reference_tables(folder, name="eval_reference.json"):
+    ev = load(folder, name)
     if not ev:
         return
+    tag = seed_tag(name, "eval_reference")
     s = ev["summary"]
     rows = [
         [
@@ -139,7 +146,7 @@ def reference_tables(folder):
         for f, v in s.items()
     ]
     table(
-        "Flow against the reference",
+        f"Flow against the reference{tag}",
         ["f", "median SNR", "C2ST", "C2ST floor", "IS efficiency"],
         rows,
     )
@@ -155,7 +162,7 @@ def reference_tables(folder):
         for f, v in s.items()
     ]
     table(
-        "Mode recovery",
+        f"Mode recovery{tag}",
         [
             "f",
             "bimodal cases",
@@ -171,7 +178,7 @@ def reference_tables(folder):
         r, q = v["width_reference"], v["width_ratio"]
         rows.append([f] + [num(r[k]) for k in r] + [num(q[k], 2) for k in q])
     table(
-        "Posterior width over prior width (reference) and flow over reference",
+        f"Posterior width over prior width (reference) and flow over reference{tag}",
         ["f", "mass", "time", "cos i", "ratio mass", "ratio time", "ratio cos i"],
         rows,
     )
@@ -243,6 +250,73 @@ def cost(folder):
         )
 
 
+def evaluation(folder, stem, seed):
+    """Result file of one training seed; the first seed's file has no suffix."""
+    data = load(folder, f"{stem}_seed{seed}.json")
+    if data is None and seed == 0:
+        data = load(folder, f"{stem}.json")
+    return data
+
+
+def flow_cells(flow):
+    marginal = [
+        (v["ks"], v["p_value"])
+        for row in flow.values()
+        for name, v in row["sbc"].items()
+        if name != "log_likelihood"
+    ]
+    joint = [row["sbc"]["log_likelihood"] for row in flow.values()]
+    top = flow[max(flow, key=float)]["sbc"]["log_likelihood"]["hist"]["counts"]
+    gaps = [row["hpd"][c] - float(c) for row in flow.values() for c in row["hpd"]]
+    tarp = [row["tarp"]["max_deviation"] for row in flow.values()]
+    return [
+        f"{sum(p < 0.05 for _, p in marginal)} of {len(marginal)}",
+        num(max(k for k, _ in marginal)),
+        f"{num(min(v['ks'] for v in joint))} to {num(max(v['ks'] for v in joint))}",
+        f"{top[-1]} of {sum(top)}",
+        f"{num(min(gaps))} to {num(max(gaps))}",
+        num(max(tarp)),
+    ]
+
+
+def reference_cells(ref):
+    s = ref["summary"]
+    ratio = " / ".join(num(x, 2) for x in s["1"]["width_ratio"].values())
+    return [num(s["0.75"]["median_c2st"]), num(s["1"]["median_c2st"]), ratio]
+
+
+def seed_summary(folder):
+    rows = []
+    for path in sorted(folder.glob("train_log_seed*.json")):
+        seed = int(path.stem.removeprefix("train_log_seed"))
+        best = json.loads(path.read_text())["summary"]["best_val_nll"]
+        flow = evaluation(folder, "eval_flow", seed)
+        ref = evaluation(folder, "eval_reference", seed)
+        rows.append(
+            [seed, num(best)]
+            + (flow_cells(flow) if flow else ["n/a"] * 6)
+            + (reference_cells(ref) if ref else ["n/a"] * 3)
+        )
+    if len(rows) > 1:
+        table(
+            "Training runs side by side",
+            [
+                "seed",
+                "best validation NLL",
+                "marginal SBC p under 0.05",
+                "largest marginal distance",
+                "log likelihood distance",
+                "log likelihood top bin at f = 1",
+                "HPD minus level",
+                "TARP max deviation",
+                "C2ST at f = 0.75",
+                "C2ST at f = 1",
+                "width ratio at f = 1 (mass, time, cos i)",
+            ],
+            rows,
+        )
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--smoke", action="store_true", help="read results/smoke")
@@ -258,6 +332,11 @@ def main():
         cost,
     ):
         fn(folder)
+    seed_summary(folder)
+    for path in sorted(folder.glob("eval_flow_seed*.json")):
+        calibration_tables(folder, path.name)
+    for path in sorted(folder.glob("eval_reference_seed*.json")):
+        reference_tables(folder, path.name)
 
 
 if __name__ == "__main__":
