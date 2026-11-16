@@ -112,8 +112,9 @@ def c2st(a, b, periodic, generator=None, steps: int = 300, hidden: int = 64) -> 
     """Classifier two sample test, held out accuracy; 0.5 is indistinguishable."""
     x = torch.cat([features(a, periodic), features(b, periodic)]).float()
     y = torch.cat([torch.zeros(a.shape[0]), torch.ones(b.shape[0])]).float()
+    y = y.to(x.device)
     x = (x - x.mean(0)) / x.std(0).clamp_min(1e-6)
-    order = torch.randperm(x.shape[0], generator=generator)
+    order = torch.randperm(x.shape[0], generator=generator).to(x.device)
     half = x.shape[0] // 2
     correct = 0
     for train, test in ((order[:half], order[half:]), (order[half:], order[:half])):
@@ -127,6 +128,7 @@ def c2st(a, b, periodic, generator=None, steps: int = 300, hidden: int = 64) -> 
                 nn.ReLU(),
                 nn.Linear(hidden, 1),
             )
+        net = net.to(x.device)
         opt = torch.optim.Adam(net.parameters(), lr=3e-3, weight_decay=1e-4)
         for _ in range(steps):
             loss = nn.functional.binary_cross_entropy_with_logits(

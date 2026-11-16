@@ -177,7 +177,15 @@ def summarise_reference(records, fractions):
 
 
 def compare_with_reference(
-    sim, posterior, fractions, n_cases, n_particles, seed, floor_cases=3, n_moves=6
+    sim,
+    posterior,
+    fractions,
+    n_cases,
+    n_particles,
+    seed,
+    floor_cases=3,
+    n_moves=6,
+    ess_frac=0.5,
 ):
     """Flow against the exact reference on injections shared across fractions."""
     theta, w_full = make_streams(sim, n_cases, seed)
@@ -188,7 +196,7 @@ def compare_with_reference(
         for j in range(n_cases):
             gen = make_generator(seed * 1000 + 31 * n_obs + j, sim.device)
             ref = reference_posterior(
-                sim, w[j], n_obs, n_particles, n_moves, generator=gen
+                sim, w[j], n_obs, n_particles, n_moves, ess_frac, gen
             )
             flow_theta, log_q = posterior.sample(w[j], n_obs, n_particles, gen)
             u_ref, u_flow = sim.to_unit(ref.samples), sim.to_unit(flow_theta)
@@ -198,14 +206,9 @@ def compare_with_reference(
                 case=j,
                 n_obs=n_obs,
                 snr=sim.snr(theta[j : j + 1], torch.tensor([n_obs])).item(),
-                c2st=c2st(
-                    u_flow.cpu(), u_ref.cpu(), sim.periodic.cpu(), make_generator(j)
-                ),
+                c2st=c2st(u_flow, u_ref, sim.periodic, make_generator(j)),
                 c2st_symmetry=c2st(
-                    u_flow.cpu(),
-                    pair_image(u_flow).cpu(),
-                    sim.periodic.cpu(),
-                    make_generator(j + 50),
+                    u_flow, pair_image(u_flow), sim.periodic, make_generator(j + 50)
                 ),
                 is_efficiency=importance_efficiency(ell, log_q),
                 mode_ref=mode_summary(u_ref),
@@ -224,16 +227,19 @@ def compare_with_reference(
                     n_obs,
                     n_particles,
                     n_moves,
+                    ess_frac,
                     generator=make_generator(j + 99, sim.device),
                 )
                 rec["c2st_floor"] = c2st(
-                    u_ref.cpu(), sim.to_unit(second.samples).cpu(), sim.periodic.cpu()
+                    u_ref, sim.to_unit(second.samples), sim.periodic
                 )
             records.append(rec)
     return dict(records=records, summary=summarise_reference(records, fractions))
 
 
-def sequential_experiment(sim, posterior, path, n_cases, n_particles, seed, n_moves=6):
+def sequential_experiment(
+    sim, posterior, path, n_cases, n_particles, seed, n_moves=6, ess_frac=0.5
+):
     """Cost and quality of three ways to reach each fraction along one stream."""
     theta, w_full = make_streams(sim, n_cases, seed)
     rows = []
@@ -241,21 +247,28 @@ def sequential_experiment(sim, posterior, path, n_cases, n_particles, seed, n_mo
         w = w_full[j]
         gen = make_generator(seed * 1000 + j, sim.device)
         scratch = {
-            n: reference_posterior(sim, w, n, n_particles, n_moves, generator=gen)
+            n: reference_posterior(sim, w, n, n_particles, n_moves, ess_frac, gen)
             for n in path
         }
         extra = reference_posterior(
-            sim, w, path[-1], n_particles, n_moves, generator=gen
+            sim, w, path[-1], n_particles, n_moves, ess_frac, gen
         )
         chains = {
             "chain_sampler": sequential_path(
-                sim, w, list(path), scratch[path[0]].samples, None, n_moves, gen
+                sim,
+                w,
+                list(path),
+                scratch[path[0]].samples,
+                None,
+                n_moves,
+                gen,
+                ess_frac,
             )
         }
         w0 = truncate(sim, w[None], path[0])[0]
         flow_theta, log_q = posterior.sample(w0, path[0], n_particles, gen)
         chains["chain_flow"] = sequential_path(
-            sim, w, list(path), flow_theta, log_q, n_moves, gen
+            sim, w, list(path), flow_theta, log_q, n_moves, gen, ess_frac
         )
         for name, records in chains.items():
             for rec in records:
@@ -270,9 +283,9 @@ def sequential_experiment(sim, posterior, path, n_cases, n_particles, seed, n_mo
                         stages=res.stages,
                         ess_first=res.ess_first,
                         c2st=c2st(
-                            sim.to_unit(res.samples).cpu(),
-                            sim.to_unit(scratch[n].samples).cpu(),
-                            sim.periodic.cpu(),
+                            sim.to_unit(res.samples),
+                            sim.to_unit(scratch[n].samples),
+                            sim.periodic,
                         ),
                         mode_gap=abs(
                             mode_summary(sim.to_unit(res.samples))["weight"] - 0.5
@@ -306,9 +319,9 @@ def sequential_experiment(sim, posterior, path, n_cases, n_particles, seed, n_mo
                 stages=extra.stages,
                 ess_first=1.0,
                 c2st=c2st(
-                    sim.to_unit(extra.samples).cpu(),
-                    sim.to_unit(scratch[path[-1]].samples).cpu(),
-                    sim.periodic.cpu(),
+                    sim.to_unit(extra.samples),
+                    sim.to_unit(scratch[path[-1]].samples),
+                    sim.periodic,
                 ),
                 mode_gap=None,
             )
@@ -325,7 +338,9 @@ def sequential_experiment(sim, posterior, path, n_cases, n_particles, seed, n_mo
     return dict(rows=rows, summary=table, c2st_floor=median(floor), path=list(path))
 
 
-def timing(sim, posterior, n_obs, n_samples, n_particles, repeats=5):
+def timing(
+    sim, posterior, n_obs, n_samples, n_particles, repeats=5, n_moves=6, ess_frac=0.5
+):
     """Seconds for n_samples draws: flow (one, 100 amortised) and the sampler."""
     theta, w_full = make_streams(sim, 100, 5)
     w = truncate(sim, w_full, n_obs)
@@ -348,7 +363,7 @@ def timing(sim, posterior, n_obs, n_samples, n_particles, repeats=5):
     one = clock(lambda: posterior.sample(w[0], n_obs, n_samples, gen))
     many = clock(lambda: posterior.sample_many(w, n_vec, n_samples, gen)) / 100
     ref = [
-        reference_posterior(sim, w[0], n_obs, n_particles, generator=gen)
+        reference_posterior(sim, w[0], n_obs, n_particles, n_moves, ess_frac, gen)
         for _ in range(3)
     ]
     name = torch.cuda.get_device_name() if sim.device.type == "cuda" else "cpu"
