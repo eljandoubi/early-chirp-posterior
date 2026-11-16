@@ -22,12 +22,17 @@ PRESETS = {
 }
 
 
-def main():
+def parse(argv=None):
     p = parser(__doc__)
     p.add_argument("--minutes", type=float, default=None, help="fill this time budget")
     p.add_argument("--steps", type=int, default=None)
     p.add_argument("--batch", type=int, default=None, help="default 512 (smoke 32)")
-    args = p.parse_args()
+    p.add_argument("--lr", type=float, default=3e-4, help="peak learning rate")
+    return p.parse_args(argv)
+
+
+def main():
+    args = parse()
     cfg = size(args, PRESETS)
     sim = Simulator(device=args.device)
     torch.manual_seed(args.seed)
@@ -37,6 +42,7 @@ def main():
         flow,
         steps=args.steps or cfg["steps"],
         batch=args.batch or cfg["batch"],
+        lr=args.lr,
         seed=args.seed,
         val_size=cfg["val_size"],
         val_every=cfg["val_every"],
