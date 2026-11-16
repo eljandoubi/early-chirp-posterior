@@ -6,6 +6,14 @@ from dataclasses import dataclass
 
 import torch
 
+STEP_FLOOR = 1e-6
+MIN_PROPOSAL_ESS = 0.01
+MIN_DISTINCT = 0.1
+
+
+class SMCError(RuntimeError):
+    """The sampler could not reach the end density with a healthy ensemble."""
+
 
 @dataclass
 class SMCResult:
@@ -14,7 +22,11 @@ class SMCResult:
     n_evals: int
     stages: int
     seconds: float
-    ess_first: float
+    ess_first: float  # ESS share of the proposal correction, 1.0 without one
+    beta: float  # temperature reached, 1.0 once the schedule is finished
+    min_ess_fraction: float  # smallest ESS share of any resampling step
+    distinct: int  # distinct particles in the returned samples
+    converged: bool
 
 
 def ess_of(logw: torch.Tensor) -> torch.Tensor:
@@ -22,8 +34,16 @@ def ess_of(logw: torch.Tensor) -> torch.Tensor:
     return w.sum() ** 2 / w.pow(2).sum()
 
 
+def distinct_rows(x: torch.Tensor) -> int:
+    return torch.unique(x, dim=0).shape[0]
+
+
 def next_step(inc: torch.Tensor, room: float, target: float) -> float:
-    """Largest step in (0, room] whose incremental weights keep ESS >= target."""
+    """Largest step in (0, room] whose incremental weights keep ESS >= target.
+
+    The step never goes below STEP_FLOOR, so a caller that needs the target met
+    has to check the ESS of the step it gets.
+    """
     if ess_of(room * inc) >= target:
         return room
     lo, hi = 0.0, room
@@ -33,7 +53,7 @@ def next_step(inc: torch.Tensor, room: float, target: float) -> float:
             lo = mid
         else:
             hi = mid
-    return max(lo, 1e-6)
+    return max(lo, STEP_FLOOR)
 
 
 def systematic_resample(logw: torch.Tensor, generator=None) -> torch.Tensor:
@@ -97,6 +117,7 @@ def tempered_smc(
     generator=None,
     max_stages=400,
     image=None,
+    strict=True,
 ):
     """Move particles from pi_start to pi_end along (1 - b) log_start + b log_end.
 
@@ -108,6 +129,13 @@ def tempered_smc(
     image, if given, is an exact symmetry of both densities (an involution that
     keeps the prior box): after every stage each particle is mapped through it
     with probability one half, which is a valid move and balances the images.
+
+    A run fails when the schedule ends before beta reaches 1 (max_stages), when
+    even the smallest temperature step leaves fewer effective particles than
+    ess_frac asks for, when the proposal weights leave under MIN_PROPOSAL_ESS of
+    the particles effective, or when under MIN_DISTINCT of them are distinct
+    after a stage. With strict (the default) a failure raises SMCError; without
+    it the result comes back with converged False and a NaN evidence.
     """
     t0 = time.perf_counter()
     x = particles.clone()
@@ -116,17 +144,39 @@ def tempered_smc(
     ls, le = logp(x)
     log_z = 0.0
     ess_first = 1.0
+    failed = []
+
+    def check(ok, message):
+        if not ok:
+            if strict:
+                raise SMCError(message)
+            failed.append(message)
+
     if log_q is not None:
         logw = ls - log_q
         log_z = (torch.logsumexp(logw, 0) - math.log(n)).item()
         ess_first = (ess_of(logw) / n).item()
+        check(
+            ess_first >= MIN_PROPOSAL_ESS,
+            f"the proposal leaves {ess_first:.3g} of the particles effective, "
+            f"under {MIN_PROPOSAL_ESS:g}",
+        )
         idx = systematic_resample(logw, generator)
         x, ls, le = x[idx].clone(), ls[idx].clone(), le[idx].clone()
+    min_ess = ess_first
     beta, stages = 0.0, 0
     while beta < 1.0 and stages < max_stages:
         inc = le - ls
         delta = next_step(inc, 1.0 - beta, ess_frac * n)
         logw = delta * inc
+        ess = (ess_of(logw) / n).item()
+        min_ess = min(min_ess, ess)
+        check(
+            ess >= ess_frac * (1.0 - 1e-9),
+            f"stage {stages + 1} at beta = {beta:.3g}: the smallest temperature "
+            f"step ({delta:g}) leaves {ess:.3g} of the particles effective, "
+            f"under the requested {ess_frac:g}",
+        )
         log_z += (torch.logsumexp(logw, 0) - math.log(n)).item()
         beta = 1.0 if beta + delta >= 1.0 - 1e-12 else beta + delta
         idx = systematic_resample(logw, generator)
@@ -137,11 +187,26 @@ def tempered_smc(
             flip = torch.rand(n, generator=generator, dtype=x.dtype, device=x.device)
             x = torch.where((flip < 0.5)[:, None], image(x), x)
         stages += 1
+        distinct = distinct_rows(x)
+        check(
+            distinct >= MIN_DISTINCT * n,
+            f"after stage {stages} only {distinct} of {n} particles are "
+            f"distinct, under {MIN_DISTINCT:g} of them",
+        )
+    check(
+        beta >= 1.0,
+        f"stopped at beta = {beta:.3g} after {stages} stages (max_stages = "
+        f"{max_stages}), before the end density",
+    )
     return SMCResult(
         samples=x,
-        log_evidence=log_z,
+        log_evidence=float("nan") if failed else log_z,
         n_evals=counter[0],
         stages=stages,
         seconds=time.perf_counter() - t0,
         ess_first=ess_first,
+        beta=beta,
+        min_ess_fraction=min_ess,
+        distinct=distinct_rows(x),
+        converged=not failed,
     )

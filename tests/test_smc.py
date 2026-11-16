@@ -1,8 +1,15 @@
 import math
 
+import pytest
 import torch
 
-from chirpvi.smc import ess_of, next_step, systematic_resample, tempered_smc
+from chirpvi.smc import (
+    SMCError,
+    ess_of,
+    next_step,
+    systematic_resample,
+    tempered_smc,
+)
 from chirpvi.util import circular_mean, circular_std
 
 F64 = torch.float64
@@ -41,6 +48,8 @@ def test_two_gaussian_modes_weights_means_and_evidence():
     assert ((mean1 - m1).abs() < 0.2 * torch.sqrt(torch.diag(s1))).all()
     assert (std1 / torch.sqrt(torch.diag(s1)) - 1).abs().max() < 0.2
     assert res.stages > 2 and res.n_evals > 2048
+    assert res.converged and res.beta == 1.0 and res.ess_first == 1.0
+    assert res.min_ess_fraction >= 0.5 - 1e-9 and res.distinct > 0.5 * 2048
 
 
 def test_periodic_bump_across_the_boundary():
@@ -111,3 +120,60 @@ def test_symmetry_move_balances_images_and_keeps_the_evidence():
     assert abs(left - 0.5) < 0.03
     truth = math.log(0.03 * 0.05 * 2 * math.pi)
     assert abs(res.log_evidence - truth) < 0.15
+
+
+def run_peak(width, **kw):
+    """One dimensional Gaussian peak at 0.9 under a uniform prior, 1024 particles."""
+
+    def logp(x):
+        return torch.zeros(len(x), dtype=F64), -0.5 * ((x[:, 0] - 0.9) / width) ** 2
+
+    gen = torch.Generator().manual_seed(44)
+    x0 = torch.rand(1024, 1, generator=gen, dtype=F64)
+    lo, hi = torch.zeros(1, dtype=F64), torch.ones(1, dtype=F64)
+    periodic = torch.tensor([False])
+    return tempered_smc(logp, x0, lo, hi, periodic, generator=gen, **kw)
+
+
+def test_a_likelihood_sharper_than_the_step_floor_raises():
+    with pytest.raises(SMCError, match="smallest temperature step"):
+        run_peak(1e-8, ess_frac=0.7, n_moves=6)
+    res = run_peak(1e-8, ess_frac=0.7, n_moves=6, strict=False)
+    assert not res.converged and math.isnan(res.log_evidence)
+    assert res.distinct == 1 and res.min_ess_fraction < 0.01
+
+
+def test_an_unfinished_schedule_raises():
+    with pytest.raises(SMCError, match="max_stages"):
+        run_peak(0.01, ess_frac=0.7, n_moves=1, max_stages=1)
+    res = run_peak(0.01, ess_frac=0.7, n_moves=1, max_stages=1, strict=False)
+    assert not res.converged and res.stages == 1 and 0 < res.beta < 0.01
+    assert math.isnan(res.log_evidence)
+
+
+def test_a_finished_schedule_reports_what_it_reached():
+    res = run_peak(0.01, ess_frac=0.7, n_moves=6)
+    assert res.converged and res.beta == 1.0 and res.stages < 400
+    assert res.min_ess_fraction >= 0.7 - 1e-9 and res.distinct > 0.5 * 1024
+    assert abs(res.samples.mean().item() - 0.9) < 0.003
+    assert abs(res.log_evidence - math.log(0.01 * math.sqrt(2 * math.pi))) < 0.3
+
+
+def test_a_proposal_that_misses_the_target_raises():
+    def logp(x):
+        ell = -0.5 * (((x[:, 0] - 0.5) / 0.01) ** 2)
+        return ell, ell
+
+    gen = torch.Generator().manual_seed(5)
+    x0 = 0.9 + 0.01 * torch.randn(1024, 1, generator=gen, dtype=F64)
+    log_q = -0.5 * (((x0[:, 0] - 0.9) / 0.01) ** 2) - math.log(0.01 * 2.5066282746)
+    lo, hi = torch.zeros(1, dtype=F64), torch.ones(1, dtype=F64)
+    with pytest.raises(SMCError, match="proposal"):
+        tempered_smc(
+            logp, x0, lo, hi, torch.tensor([False]), log_q=log_q, generator=gen
+        )
+
+
+def test_particles_that_lose_their_diversity_raise():
+    with pytest.raises(SMCError, match="distinct"):
+        run_peak(1e-3, n_moves=0)
