@@ -357,8 +357,11 @@ def reference_cells(ref):
 
 
 def seed_summary(folder):
+    paths = sorted(folder.glob("train_log_seed*.json"))
+    if len(paths) < 2:
+        return
     rows = []
-    for path in sorted(folder.glob("train_log_seed*.json")):
+    for path in paths:
         seed = int(path.stem.removeprefix("train_log_seed"))
         best = json.loads(path.read_text())["summary"]["best_val_nll"]
         flow = evaluation(folder, "eval_flow", seed)

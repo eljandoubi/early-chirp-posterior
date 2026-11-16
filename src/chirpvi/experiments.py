@@ -278,8 +278,13 @@ def sequential_experiment(
     n_moves=6,
     ess_frac=0.5,
     log=None,
+    strict=True,
 ):
-    """Cost and quality of three ways to reach each fraction along one stream."""
+    """Cost and quality of three ways to reach each fraction along one stream.
+
+    With strict False a chain whose sampler fails still gets a row, marked
+    converged False (an untrained flow is a poor proposal).
+    """
     torch.manual_seed(seed)
     theta, w_full = make_streams(sim, n_cases, seed)
     rows = []
@@ -303,12 +308,13 @@ def sequential_experiment(
                 n_moves,
                 gen,
                 ess_frac,
+                strict,
             )
         }
         w0 = truncate(sim, w[None], path[0])[0]
         flow_theta, log_q = posterior.sample(w0, path[0], n_particles, gen)
         chains["chain_flow"] = sequential_path(
-            sim, w, list(path), flow_theta, log_q, n_moves, gen, ess_frac
+            sim, w, list(path), flow_theta, log_q, n_moves, gen, ess_frac, strict
         )
         for name, records in chains.items():
             for rec in records:
@@ -322,6 +328,7 @@ def sequential_experiment(
                         seconds=res.seconds,
                         stages=res.stages,
                         ess_first=res.ess_first,
+                        converged=res.converged,
                         c2st=c2st(
                             sim.to_unit(res.samples),
                             sim.to_unit(scratch[n].samples),

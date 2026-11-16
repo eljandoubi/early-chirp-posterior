@@ -9,13 +9,21 @@ from chirpvi.training import FlowPosterior, load_flow
 from chirpvi.util import write_json
 
 PRESETS = {
-    "smoke": dict(path=(96, 160, 256), n_cases=1, particles=128, moves=3, ess=0.5),
+    "smoke": dict(
+        path=(96, 160, 256),
+        n_cases=1,
+        particles=128,
+        moves=3,
+        ess=0.5,
+        strict=False,
+    ),
     "full": dict(
         path=tuple(n_obs_of(f, Simulator().problem) for f in FRACTIONS),
         n_cases=10,
         particles=2048,
         moves=20,
         ess=0.7,
+        strict=True,
     ),
 }
 
@@ -35,6 +43,7 @@ def main():
         cfg["moves"],
         cfg["ess"],
         log=print,
+        strict=cfg["strict"],
     )
     res["run"] = run_info(args, cfg)
     print(write_json(results_dir(args) / "sequential.json", res))

@@ -1,8 +1,10 @@
+import pytest
 import torch
 
 from chirpvi.reference import reference_posterior
 from chirpvi.sequential import sequential_path, sequential_step
 from chirpvi.simulator import Simulator
+from chirpvi.smc import SMCError
 
 
 def stream(sim, seed=0):
@@ -46,3 +48,19 @@ def test_a_path_gives_one_record_per_step_and_uses_fewer_evaluations_late():
     assert [r["n_obs"] for r in records] == [160, 256]
     assert all(r["result"].samples.shape == (256, 5) for r in records)
     assert records[-1]["result"].n_evals < scratch.n_evals
+
+
+def test_a_proposal_with_one_effective_particle_raises_unless_strict_is_off():
+    sim = Simulator()
+    theta, w = stream(sim, seed=4)
+    gen = torch.Generator().manual_seed(5)
+    particles = sim.sample_prior(256, gen)
+    log_q = torch.zeros(256, dtype=torch.float64)
+    log_q[0] = -1e4
+    with pytest.raises(SMCError, match="proposal"):
+        sequential_step(sim, w, 96, 160, particles, log_q, n_moves=2, generator=gen)
+    kw = dict(n_moves=2, generator=gen, strict=False)
+    res = sequential_step(sim, w, 96, 160, particles, log_q, **kw)
+    assert not res.converged and res.ess_first < 0.01
+    records = sequential_path(sim, w, [96, 160], particles, log_q, **kw)
+    assert [r["result"].converged for r in records] == [False]

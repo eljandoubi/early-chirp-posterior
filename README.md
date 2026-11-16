@@ -328,6 +328,10 @@ python scripts/sequential.py --smoke
 python scripts/report.py --smoke
 ```
 
+The smoke run of `sequential.py` sets `strict` off, so a chain whose sampler fails gets a row marked
+`converged: false` instead of an error: its flow has 60 training steps and is a poor proposal. The full run keeps
+the sampler strict.
+
 Full runs. These are the commands behind `results/`, run on one free Colab T4 (Python 3.13, torch 2.14, 2 vCPU,
 fp32 flow, fp64 simulator and sampler); `calibrate_snr.py` ran on a laptop CPU. The Colab details are notes from
 that session: the result files of these runs do not record them. The scripts now write a `run` entry (Python and

@@ -18,12 +18,14 @@ def sequential_step(
     ess_frac: float = 0.5,
     generator: torch.Generator | None = None,
     symmetrize: bool = True,
+    strict: bool = True,
 ) -> SMCResult:
     """Move particles from the posterior of the first n_prev samples to n_next.
 
     particles are posterior samples at n_prev (log_q None) or draws from a proposal
     with unit cube log density log_q (the flow). The exact likelihood of the new
     samples gives the first importance weights; tempering and moves do the rest.
+    strict is passed on to tempered_smc.
     """
     lik = Likelihood(sim, w_obs)
 
@@ -41,6 +43,7 @@ def sequential_step(
         n_moves=n_moves,
         generator=generator,
         image=sim.pair_image if symmetrize else None,
+        strict=strict,
     )
 
 
@@ -53,6 +56,7 @@ def sequential_path(
     n_moves: int = 6,
     generator: torch.Generator | None = None,
     ess_frac: float = 0.5,
+    strict: bool = True,
 ) -> list[dict]:
     """Run sequential_step along increasing sample counts; one record per step."""
     particles, log_q, records = first, first_log_q, []
@@ -67,6 +71,7 @@ def sequential_path(
             n_moves,
             ess_frac,
             generator=generator,
+            strict=strict,
         )
         records.append(dict(n_obs=n_next, result=res))
         particles, log_q = res.samples, None

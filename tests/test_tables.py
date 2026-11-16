@@ -58,3 +58,17 @@ def test_report_prints_the_derived_tables_and_skips_missing_files(
     assert "| 0.5 | 4 | 4 | 3 |" in out and "| all | 4 | 4 | 3 |" in out
     assert "| 0.5 | 5 | 0.600 | 0.550 | 0.050 | -0.020 to 0.100 |" in out
     assert "1.05 (0.90 to 1.40), 7 of 20" in out and "more than 11%" in out
+
+
+def test_report_prints_no_side_by_side_table_for_one_training_run(
+    monkeypatch, tmp_path, capsys
+):
+    monkeypatch.syspath_prepend(str(ROOT / "scripts"))
+    import report
+
+    log = dict(summary=dict(best_val_nll=-5.0))
+    (tmp_path / "train_log_seed0.json").write_text(json.dumps(log))
+    reference = dict(summary={"0.5": dict(median_c2st=0.6)})
+    (tmp_path / "eval_reference.json").write_text(json.dumps(reference))
+    report.seed_summary(tmp_path)
+    assert capsys.readouterr().out == ""
