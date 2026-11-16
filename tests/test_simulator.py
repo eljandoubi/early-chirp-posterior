@@ -1,5 +1,6 @@
 import math
 
+import pytest
 import torch
 
 from chirpvi.config import Problem
@@ -68,6 +69,39 @@ def test_signal_is_linear_in_the_amplitude_constant():
     big = Simulator(Problem(amplitude=3.0))
     theta = base.sample_prior(2, torch.Generator().manual_seed(3))
     assert (big.signal(theta) - 3 * base.signal(theta)).abs().max() < 1e-9
+
+
+def test_amplitude_is_the_chirp_mass_to_the_five_fourths():
+    sim = Simulator()
+    theta = torch.tensor(
+        [[15.0, 2.4, 0.0, 0.0, 0.0], [30.0, 2.4, 0.0, 0.0, 0.0]], dtype=torch.float64
+    )
+    _, amp = sim.phase_and_amplitude(theta)
+    assert torch.allclose(amp[1] / amp[0], torch.full_like(amp[0], 2**1.25))
+    assert amp[0, 0].item() == pytest.approx(21.0 * (15 / 20) ** 1.25 * 2.4**-0.25)
+
+
+def test_amplitude_is_the_time_to_merger_to_the_minus_one_quarter():
+    sim = Simulator()
+    theta = torch.tensor([[20.0, 2.4, 0.0, 0.0, 0.0]], dtype=torch.float64)
+    _, amp = sim.phase_and_amplitude(theta)
+    tau = 2.4 - sim.t
+    ratio = (tau[0] / tau[200]) ** 0.25
+    assert amp[0, 200].item() / amp[0, 0].item() == pytest.approx(ratio.item())
+
+
+def test_polarisation_factors_of_face_on_edge_on_and_tilted_orbits():
+    sim = Simulator()
+    for cosi in (-1.0, -0.5, 0.0, 0.5, 1.0):
+        theta = torch.tensor([[20.0, 2.4, 0.7, cosi, 0.0]], dtype=torch.float64)
+        phase, amp = sim.phase_and_amplitude(theta)
+        a, phi = amp[0, 0].item(), phase[0, 0].item()
+        plus = a * 0.5 * (1.0 + cosi * cosi) * math.cos(phi)
+        cross = a * cosi * math.sin(phi)
+        # alpha = 0 and t = 0: channel 1 is plus and channel 2 is cross
+        sig = sim.signal(theta)
+        assert sig[0, 0, 0].item() == pytest.approx(plus, abs=1e-12)
+        assert sig[0, 1, 0].item() == pytest.approx(cross, abs=1e-12)
 
 
 def test_snr_grows_with_the_observed_fraction():
