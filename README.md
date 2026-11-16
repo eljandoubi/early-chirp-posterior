@@ -24,10 +24,10 @@ per fraction (single injections from -0.066 to 0.232). Once the exact posterior 
 the flow is wider: 2.0 and 2.5 times for the chirp mass and the merger time at f = 1 (medians over 20
 injections). The rank of the exact log likelihood fails at every fraction; it is a joint check, so by itself it
 does not say which part of the flow is wrong, and the width comparison is the separate evidence for wider
-marginals at the high fractions. Reusing the posterior at one fraction as the proposal for
-the next needs 2.0 to 3.6 times fewer likelihood evaluations than starting from the prior, and drawing 2048
-samples from the flow is 39 to 190 times faster than the reference sampler on the T4 (99 times on one CPU
-thread). The second flow shows the same pattern, with small departures in its marginal ranks at f = 1.
+marginals at the high fractions. Reusing the posterior at one fraction as the proposal for the next needs 2.0 to
+3.6 times fewer likelihood evaluations than starting from the prior, and drawing 2048 samples from the flow is 39
+to 190 times faster than the reference sampler on the T4 (99 times on one CPU thread). The second flow shows the
+same pattern, with small departures in its marginal ranks at f = 1.
 
 ### Signal level
 
@@ -114,8 +114,8 @@ HPD coverage minus the nominal level (columns).
 TARP (a negative mean deviation means overconfident).
 
 The ranks of the seven tested functions look uniform (for each angle only its sine and cosine, see Limits): of the
-42 (fraction, function) pairs two have a p value under 0.05 (0.02 and
-0.03), about what chance gives, and the largest distance is 0.048. Central 90 percent intervals of the three
+42 (fraction, function) pairs two have a p value under 0.05 (0.02 and 0.03), about what chance gives, and the
+largest distance is 0.048. Central 90 percent intervals of the three
 linear parameters cover 0.88 to 0.91 of the cases and central 50 percent intervals 0.47 to 0.52. HPD regions
 cover within -0.009 and +0.049 of the nominal level (19 of 24 values above it, so slightly conservative, the
 largest at f = 1), and TARP deviates by at most 0.044.
