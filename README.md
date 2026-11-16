@@ -452,6 +452,10 @@ the figure divides each count by its uniform expectation.
 - The two modes of the flow are checked by the weight on each half-circle, by the symmetry test and, on the saved
   records, by the reference's own bimodality test (53 of 59 and 35 of 49 cases pass). The positions of the flow's
   modes against the reference modes were not measured.
+- The trained flows were not saved. The checks that need new flow samples (angle calibration beyond the sine and
+  cosine, the positions of the flow's modes, a likelihood rank after permuting each parameter across the samples
+  of an observation to separate width from dependence) cannot be run on these results; a re-run would need the
+  weights kept.
 - The reference sampler is checked on analytic and grid problems and by agreement between independent runs, not
   proved correct on every observation; ensemble moves may mix slowly on thin curved ridges, and its evidence
   estimate is noisier than its samples.
