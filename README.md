@@ -263,7 +263,7 @@ starts from a corrected posterior either way.
 
 Seconds for 2048 posterior samples of one observation with 192 samples observed. "Flow amortised" is the time
 per observation when 100 are sampled in one batch. The CPU row ran on one torch thread of the Colab VM (2
-vCPU). On the T4 the flow is 39 times (one observation) and 190 times (batched) faster than the reference
+vCPU; a note from the session, not recorded in the file). On the T4 the flow is 39 times (one observation) and 190 times (batched) faster than the reference
 sampler, on the CPU row 99 times. Each timing comes from one session on a shared VM (median of 5 repeats for the
 flow, 3 for the sampler).
 
@@ -329,8 +329,10 @@ python scripts/report.py --smoke
 ```
 
 Full runs. These are the commands behind `results/`, run on one free Colab T4 (Python 3.13, torch 2.14, 2 vCPU,
-fp32 flow, fp64 simulator and sampler); `calibrate_snr.py` ran on a laptop CPU. The learning rate is lowered
-from the default 3e-4 because that rate diverged (see Results):
+fp32 flow, fp64 simulator and sampler); `calibrate_snr.py` ran on a laptop CPU. The Colab details are notes from
+that session: the result files of these runs do not record them. The scripts now write a `run` entry (Python and
+torch versions, CPU count, device name and the settings used) into the result file of any new run. The learning
+rate is lowered from the default 3e-4 because that rate diverged (see Results):
 
 ```
 python scripts/calibrate_snr.py --full --device cpu
@@ -449,7 +451,8 @@ the figure divides each count by its uniform expectation.
 - The reference sampler is checked on analytic and grid problems and by agreement between independent runs, not
   proved correct on every observation; ensemble moves may mix slowly on thin curved ridges, and its evidence
   estimate is noisier than its samples.
-- The timings come from one session on a shared VM, with the CPU row on a single thread.
+- The timings come from one session on a shared VM, with the CPU row on a single thread. The VM details and the
+  Python and torch versions in this README are notes from that session, not recorded in the result files.
 - All planned runs were done; nothing was cut.
 
 ## License

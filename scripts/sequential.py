@@ -1,6 +1,6 @@
 """Sequential variant: cost and quality of reusing the posterior at one fraction."""
 
-from common import checkpoint_path, parser, results_dir, size
+from common import checkpoint_path, parser, results_dir, run_info, size
 
 from chirpvi.config import FRACTIONS, n_obs_of
 from chirpvi.experiments import sequential_experiment
@@ -36,6 +36,7 @@ def main():
         cfg["ess"],
         log=print,
     )
+    res["run"] = run_info(args, cfg)
     print(write_json(results_dir(args) / "sequential.json", res))
 
 

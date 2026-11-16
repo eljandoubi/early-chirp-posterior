@@ -1,6 +1,6 @@
 """Evaluate the trained flow: calibration, agreement with the reference, cost."""
 
-from common import checkpoint_path, parser, results_dir, size
+from common import checkpoint_path, parser, results_dir, run_info, size
 
 from chirpvi.config import FRACTIONS, n_obs_of
 from chirpvi.experiments import calibration, compare_with_reference, timing
@@ -50,6 +50,7 @@ def main():
     )
     args = p.parse_args()
     cfg = size(args, PRESETS)
+    info = run_info(args, dict(cfg, part=args.part))
     out = results_dir(args)
     sim = Simulator(device=args.device)
     posterior = FlowPosterior(load_flow(checkpoint_path(args), args.device), sim)
@@ -64,6 +65,7 @@ def main():
             cfg["chunk"],
             cfg["loglik_cases"],
         )
+        res["run"] = info
         print(write_json(out / "eval_flow.json", res))
     if args.part in ("reference", "all"):
         res = compare_with_reference(
@@ -78,6 +80,7 @@ def main():
             cfg["ess"],
             log=print,
         )
+        res["run"] = info
         print(write_json(out / "eval_reference.json", res))
     if args.part in ("timing", "all"):
         n_obs = n_obs_of(0.75, sim.problem)
@@ -91,6 +94,7 @@ def main():
             cfg["moves"],
             cfg["ess"],
         )
+        res["run"] = info
         print(write_json(out / "timing.json", res))
 
 

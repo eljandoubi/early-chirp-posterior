@@ -1,7 +1,7 @@
 """Train the amortised flow on online simulations (fresh data at every step)."""
 
 import torch
-from common import checkpoint_path, parser, results_dir, size
+from common import checkpoint_path, parser, results_dir, run_info, size
 
 from chirpvi.flow import ConditionalFlow
 from chirpvi.simulator import Simulator
@@ -50,7 +50,20 @@ def main():
         log=print,
     )
     save_flow(checkpoint_path(args), flow, dict(seed=args.seed, **out["summary"]))
-    log = dict(model=flow.config, seed=args.seed, minutes_requested=args.minutes, **out)
+    settings = dict(
+        cfg,
+        steps=args.steps or cfg["steps"],
+        batch=args.batch or cfg["batch"],
+        lr=args.lr,
+        minutes=args.minutes,
+    )
+    log = dict(
+        model=flow.config,
+        seed=args.seed,
+        minutes_requested=args.minutes,
+        run=run_info(args, settings),
+        **out,
+    )
     print(write_json(results_dir(args) / f"train_log_seed{args.seed}.json", log))
 
 

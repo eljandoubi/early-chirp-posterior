@@ -56,6 +56,9 @@ def test_pair_symmetry_of_the_likelihood():
 
 def test_sampler_matches_the_exact_grid_posterior_of_the_angles():
     out = grid_check(Simulator(), seed=0)
+    assert out["settings"] == dict(
+        n_obs=192, n_grid=120, particles=1500, moves=6, ess_fraction=0.5
+    )
     assert out["ks_phase"] < 0.06 and out["ks_sky"] < 0.06
     assert abs(out["mode_weight"] - 0.5) < 0.06
     assert abs(out["sampler_log_evidence"] - out["grid_log_evidence"]) < 0.3
@@ -80,4 +83,6 @@ def test_five_dimensional_reference_finds_the_injection_and_repeats():
         assert abs(mc.mean() - theta[0, 0]) < 5 * mc.std()
         assert mc.std() < 0.2 * prior_std
     a, b = runs[0].samples[:, 0], runs[1].samples[:, 0]
-    assert abs(a.mean() - b.mean()) < 3 * a.std()
+    # about twice the largest gap over ten seed pairs: 0.26 std, ratio 0.88 to 1.12
+    assert abs(a.mean() - b.mean()) < 0.5 * a.std()
+    assert 0.75 < (b.std() / a.std()).item() < 1.33

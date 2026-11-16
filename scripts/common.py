@@ -5,6 +5,8 @@ from pathlib import Path
 
 import torch
 
+from chirpvi.util import environment
+
 ROOT = Path(__file__).resolve().parent.parent
 
 
@@ -32,3 +34,10 @@ def checkpoint_path(args) -> Path:
 
 def size(args, presets: dict) -> dict:
     return presets["smoke" if args.smoke else "full"]
+
+
+def run_info(args, settings: dict) -> dict:
+    """Environment and effective settings of a run, stored in its result file."""
+    return dict(
+        environment=environment(args.device), settings=dict(settings, seed=args.seed)
+    )

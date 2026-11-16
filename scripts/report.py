@@ -22,6 +22,11 @@ def seed_tag(name: str, stem: str) -> str:
     return "" if name == f"{stem}.json" else ", " + name[len(stem) + 1 : -5]
 
 
+def fraction_rows(ev: dict) -> dict:
+    """The per-fraction rows of an eval_flow file, without its run information."""
+    return {f: v for f, v in ev.items() if f != "run"}
+
+
 def table(title, headers, rows):
     print(f"\n### {title}\n")
     print("| " + " | ".join(headers) + " |")
@@ -109,6 +114,7 @@ def calibration_tables(folder, name="eval_flow.json"):
     ev = load(folder, name)
     if not ev:
         return
+    ev = fraction_rows(ev)
     tag = seed_tag(name, "eval_flow")
     names = list(next(iter(ev.values()))["sbc"])
     rows = [
@@ -359,7 +365,7 @@ def seed_summary(folder):
         ref = evaluation(folder, "eval_reference", seed)
         rows.append(
             [seed, num(best)]
-            + (flow_cells(flow) if flow else ["n/a"] * 6)
+            + (flow_cells(fraction_rows(flow)) if flow else ["n/a"] * 6)
             + (reference_cells(ref) if ref else ["n/a"] * 3)
         )
     if len(rows) > 1:

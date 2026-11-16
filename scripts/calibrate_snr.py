@@ -1,7 +1,7 @@
 """Signal to noise ratio by observed fraction for the chosen amplitude constant."""
 
 import torch
-from common import parser, results_dir, size
+from common import parser, results_dir, run_info, size
 
 from chirpvi.config import FRACTIONS, n_obs_of
 from chirpvi.noise import psd
@@ -14,9 +14,8 @@ PRESETS = {"smoke": dict(n=400), "full": dict(n=20000)}
 def main():
     args = parser(__doc__).parse_args()
     sim = Simulator(device=args.device)
-    theta = sim.sample_prior(
-        size(args, PRESETS)["n"], make_generator(args.seed, sim.device)
-    )
+    cfg = size(args, PRESETS)
+    theta = sim.sample_prior(cfg["n"], make_generator(args.seed, sim.device))
     quantiles = torch.tensor([0.1, 0.5, 0.9], dtype=torch.float64)
     table = {}
     for f in FRACTIONS:
@@ -37,6 +36,7 @@ def main():
             psd(hz[0], sim.problem) / psd(hz[1], sim.problem)
         ).item(),
         n_prior_draws=theta.shape[0],
+        run=run_info(args, cfg),
     )
     print(write_json(results_dir(args) / "snr.json", out))
 

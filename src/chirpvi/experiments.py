@@ -55,7 +55,15 @@ def median(values) -> float:
     return statistics.median(values) if values else float("nan")
 
 
-def grid_check(sim: Simulator, n_obs=192, n_grid=120, n_particles=1500, seed=0):
+def grid_check(
+    sim: Simulator,
+    n_obs=192,
+    n_grid=120,
+    n_particles=1500,
+    seed=0,
+    n_moves=6,
+    ess_frac=0.5,
+):
     """Sampler against the exact (phase, sky) grid posterior, other parameters fixed."""
     gen = make_generator(seed, sim.device)
     theta = sim.sample_prior(1, gen)
@@ -63,7 +71,7 @@ def grid_check(sim: Simulator, n_obs=192, n_grid=120, n_particles=1500, seed=0):
     theta[0, 3], theta[0, 4] = 0.4, 0.9
     w = sim.observe(theta, torch.tensor([n_obs], device=sim.device), gen)[0]
     prob, log_z = angle_grid_posterior(sim, w, n_obs, theta, n_grid)
-    res = angle_posterior(sim, w, n_obs, theta, n_particles, gen)
+    res = angle_posterior(sim, w, n_obs, theta, n_particles, gen, n_moves, ess_frac)
     out = dict(grid_log_evidence=log_z, sampler_log_evidence=res.log_evidence)
     for axis, name in ((0, "phase"), (1, "sky")):
         span = float(sim.hi[2 + 2 * axis] - sim.lo[2 + 2 * axis])
@@ -79,6 +87,13 @@ def grid_check(sim: Simulator, n_obs=192, n_grid=120, n_particles=1500, seed=0):
     first = ((res.samples[:, 1] - 0.9 + math.pi / 4) % math.pi) < math.pi / 2
     out["mode_weight"] = first.double().mean().item()
     out["n_evals"] = res.n_evals
+    out["settings"] = dict(
+        n_obs=n_obs,
+        n_grid=n_grid,
+        particles=n_particles,
+        moves=n_moves,
+        ess_fraction=ess_frac,
+    )
     return out
 
 

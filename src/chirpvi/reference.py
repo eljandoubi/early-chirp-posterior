@@ -84,7 +84,16 @@ def angle_grid_posterior(sim, w_obs, n_obs, fixed, n_grid=160):
     return prob, log_z.item()
 
 
-def angle_posterior(sim, w_obs, n_obs, fixed, n_particles=1024, generator=None):
+def angle_posterior(
+    sim,
+    w_obs,
+    n_obs,
+    fixed,
+    n_particles=1024,
+    generator=None,
+    n_moves=6,
+    ess_frac=0.5,
+):
     """The same two dimensional posterior from the tempered sampler."""
     lik = Likelihood(sim, w_obs)
     free = [2, 4]
@@ -106,5 +115,7 @@ def angle_posterior(sim, w_obs, n_obs, fixed, n_particles=1024, generator=None):
         lo,
         hi,
         sim.periodic[free],
+        ess_frac=ess_frac,
+        n_moves=n_moves,
         generator=generator,
     )

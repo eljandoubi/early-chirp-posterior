@@ -78,6 +78,7 @@ def width_figure(ev: dict, path) -> str:
 def main():
     results = ROOT / "results"
     flow = json.loads((results / "eval_flow.json").read_text())
+    flow = {f: v for f, v in flow.items() if f != "run"}
     reference = json.loads((results / "eval_reference.json").read_text())
     print(sbc_figure(flow, results / "sbc_ranks.png"))
     print(width_figure(reference, results / "posterior_width.png"))

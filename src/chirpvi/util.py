@@ -3,6 +3,7 @@
 import json
 import math
 import os
+import platform
 from pathlib import Path
 
 import torch
@@ -62,3 +63,15 @@ def write_json(path: str | os.PathLike, data: dict) -> str:
 
 def load_average() -> float:
     return os.getloadavg()[0]
+
+
+def environment(device: str | torch.device) -> dict:
+    """Python and torch versions, CPU count and device name of this run."""
+    device = torch.device(device)
+    name = torch.cuda.get_device_name(device) if device.type == "cuda" else "cpu"
+    return dict(
+        python=platform.python_version(),
+        torch=torch.__version__,
+        cpu_count=os.cpu_count(),
+        device=name,
+    )

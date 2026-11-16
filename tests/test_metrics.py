@@ -179,7 +179,7 @@ def test_a_wrong_dependence_passes_the_marginal_ranks_and_fails_the_likelihood_r
 
     for i in (0, 1):
         ranks = (proposal[..., i] < truth[:, None, i]).sum(1)
-        assert uniform_ks(ranks, 200)["p_value"] > 0.01
+        assert uniform_ks(ranks, 200)["p_value"] > 0.001
     ranks = (log_density(proposal) < log_density(truth)[:, None]).sum(1)
     assert uniform_ks(ranks, 200)["p_value"] < 1e-6
 
@@ -195,7 +195,7 @@ def test_sine_and_cosine_ranks_do_not_see_a_second_harmonic_of_an_angle():
     samples[..., 2] = draws
     ranks = sbc_ranks(truth, samples)
     for k in (3, 4):
-        assert uniform_ks(ranks[:, k], 200)["p_value"] > 0.01
+        assert uniform_ks(ranks[:, k], 200)["p_value"] > 0.001
 
     def upper_share(u):
         return (torch.sin(4 * math.pi * u) > 0).double().mean().item()

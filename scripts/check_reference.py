@@ -1,6 +1,12 @@
-"""Check the reference sampler: exact grid posterior, symmetry, two independent runs."""
+"""Check the reference sampler: exact grid posterior, symmetry, two independent runs.
 
-from common import parser, results_dir, size
+The grid check samples the two angles with 2000 particles, 6 moves and an
+effective sample share of 0.5 (50,000 likelihood evaluations; the smoke run uses
+400 particles). The two-run comparison uses the particles, moves and share of its
+own preset, and the result file stores both sets of settings.
+"""
+
+from common import parser, results_dir, run_info, size
 
 from chirpvi.config import n_obs_of
 from chirpvi.experiments import grid_check, make_streams, median, truncate
@@ -13,6 +19,8 @@ PRESETS = {
     "smoke": dict(
         n_grid=60,
         grid_particles=400,
+        grid_moves=6,
+        grid_ess=0.5,
         n_cases=2,
         particles=200,
         fractions=(0.75,),
@@ -22,6 +30,8 @@ PRESETS = {
     "full": dict(
         n_grid=160,
         grid_particles=2000,
+        grid_moves=6,
+        grid_ess=0.5,
         n_cases=12,
         particles=2048,
         fractions=(0.5, 0.75, 1.0),
@@ -35,7 +45,15 @@ def main():
     args = parser(__doc__).parse_args()
     cfg = size(args, PRESETS)
     sim = Simulator(device=args.device)
-    grid = grid_check(sim, 192, cfg["n_grid"], cfg["grid_particles"], args.seed)
+    grid = grid_check(
+        sim,
+        192,
+        cfg["n_grid"],
+        cfg["grid_particles"],
+        args.seed,
+        cfg["grid_moves"],
+        cfg["grid_ess"],
+    )
     theta, w_full = make_streams(sim, cfg["n_cases"], args.seed + 1)
     runs = []
     for f in cfg["fractions"]:
@@ -91,6 +109,7 @@ def main():
         particles=cfg["particles"],
         moves=cfg["moves"],
         ess_fraction=cfg["ess"],
+        run=run_info(args, cfg),
     )
     print(write_json(results_dir(args) / "reference_check.json", out))
 
