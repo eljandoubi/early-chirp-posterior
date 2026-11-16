@@ -15,7 +15,7 @@ class Problem:
 
     fs: float = 128.0
     n: int = 256
-    amplitude: float = 1.0
+    amplitude: float = 21.0
     omega: float = 0.5
     wall_hz: float = 25.0
     floor_hz: float = 3.0
