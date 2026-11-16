@@ -1,0 +1,11 @@
+{
+ "device": "Tesla T4",
+ "flow_seconds_amortised": 0.004530347100003382,
+ "flow_seconds_one": 0.021766368000044167,
+ "load_average": 1.1669921875,
+ "n_obs": 192,
+ "n_samples": 2048,
+ "reference_evals": 411648,
+ "reference_seconds": 0.8497384440001952,
+ "threads": 1
+}

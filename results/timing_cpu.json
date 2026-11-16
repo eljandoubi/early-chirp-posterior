@@ -1,0 +1,11 @@
+{
+ "device": "cpu",
+ "flow_seconds_amortised": 0.11401254556999901,
+ "flow_seconds_one": 0.07766445400011435,
+ "load_average": 1.22412109375,
+ "n_obs": 192,
+ "n_samples": 2048,
+ "reference_evals": 452608,
+ "reference_seconds": 7.6610261710002305,
+ "threads": 1
+}
