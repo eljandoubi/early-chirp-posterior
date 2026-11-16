@@ -1,9 +1,11 @@
+import pytest
 import torch
 
 from chirpvi.experiments import (
     calibration,
     compare_with_reference,
     sequential_experiment,
+    summarise_reference,
     timing,
 )
 from chirpvi.flow import ConditionalFlow
@@ -17,6 +19,33 @@ def tiny_posterior(sim):
     torch.manual_seed(0)
     flow = ConditionalFlow(sim.problem.n, **SMALL)
     return FlowPosterior(flow, sim)
+
+
+def record(ref_width, distinct):
+    mode = dict(weight=0.5, sky_std_0=0.1, sky_std_1=0.1)
+    return dict(
+        fraction=1.0,
+        snr=10.0,
+        c2st=0.9,
+        c2st_symmetry=0.5,
+        is_efficiency=0.1,
+        mode_ref=mode,
+        mode_flow=mode,
+        widths_ref=dict(
+            chirp_mass=ref_width, coalescence_time=0.1, cos_inclination=0.1
+        ),
+        widths_flow=dict(chirp_mass=0.2, coalescence_time=0.2, cos_inclination=0.2),
+        ref_seconds=1.0,
+        ref_evals=10,
+        ref_distinct=distinct,
+    )
+
+
+def test_summary_leaves_a_collapsed_reference_out_of_the_width_ratio():
+    table = summarise_reference([record(0.1, 0.5), record(0.0, 0.02)], (1.0,))["1"]
+    assert table["collapsed_reference"] == 1
+    assert table["width_ratio"]["chirp_mass"] == 2.0
+    assert table["median_reference_distinct"] == pytest.approx(0.26)
 
 
 def test_calibration_returns_every_statistic():
@@ -54,6 +83,7 @@ def test_reference_comparison_records_and_summary():
     assert len(out["records"]) == 2
     rec = out["records"][0]
     assert 0 <= rec["c2st"] <= 1 and 0 <= rec["is_efficiency"] <= 1
+    assert 0 < rec["ref_distinct"] <= 1
     assert "c2st_floor" in rec and "c2st_floor" not in out["records"][1]
     summary = out["summary"]["0.5"]
     assert summary["cases"] == 2 and set(summary["width_ratio"]) == {

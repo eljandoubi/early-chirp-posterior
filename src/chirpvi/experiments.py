@@ -149,11 +149,19 @@ def summarise_reference(records, fractions):
         both = [r for r in rows if is_bimodal(r["mode_ref"])]
         keep = [abs(r["mode_flow"]["weight"] - 0.5) < 0.2 for r in both]
         ratio = {
-            k: median([r["widths_flow"][k] / r["widths_ref"][k] for r in rows])
+            k: median(
+                [
+                    r["widths_flow"][k] / r["widths_ref"][k]
+                    for r in rows
+                    if r["widths_ref"][k] > 0
+                ]
+            )
             for k in rows[0]["widths_ref"]
         }
         table[f"{f:g}"] = dict(
             cases=len(rows),
+            collapsed_reference=sum(r["widths_ref"]["chirp_mass"] == 0 for r in rows),
+            median_reference_distinct=median([r["ref_distinct"] for r in rows]),
             median_snr=median([r["snr"] for r in rows]),
             median_c2st=median([r["c2st"] for r in rows]),
             median_c2st_floor=median([r.get("c2st_floor") for r in rows]),
@@ -218,6 +226,7 @@ def compare_with_reference(
                 ref_seconds=ref.seconds,
                 ref_evals=ref.n_evals,
                 ref_stages=ref.stages,
+                ref_distinct=torch.unique(u_ref, dim=0).shape[0] / u_ref.shape[0],
                 ref_log_evidence=ref.log_evidence,
             )
             if j < floor_cases:
