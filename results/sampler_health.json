@@ -1,0 +1,17 @@
+{
+ "eval_reference.json": {
+  "max_stages": 14,
+  "min_distinct_share": 0.98291015625
+ },
+ "eval_reference_seed1.json": {
+  "max_stages": 14,
+  "min_distinct_share": 0.98193359375
+ },
+ "reference_check.json": {
+  "max_stages": 14
+ },
+ "sequential.json": {
+  "max_stages": 14,
+  "min_proposal_ess": 0.07305926800126784
+ }
+}

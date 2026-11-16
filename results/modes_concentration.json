@@ -1,0 +1,96 @@
+{
+ "seed0": {
+  "fractions": {
+   "0.25": {
+    "bimodal_cases": 5,
+    "concentrated": 3,
+    "passes_reference_test": 3,
+    "weight_near_half": 5
+   },
+   "0.375": {
+    "bimodal_cases": 8,
+    "concentrated": 5,
+    "passes_reference_test": 5,
+    "weight_near_half": 8
+   },
+   "0.5": {
+    "bimodal_cases": 8,
+    "concentrated": 8,
+    "passes_reference_test": 8,
+    "weight_near_half": 8
+   },
+   "0.625": {
+    "bimodal_cases": 11,
+    "concentrated": 11,
+    "passes_reference_test": 11,
+    "weight_near_half": 11
+   },
+   "0.75": {
+    "bimodal_cases": 13,
+    "concentrated": 12,
+    "passes_reference_test": 12,
+    "weight_near_half": 13
+   },
+   "1": {
+    "bimodal_cases": 14,
+    "concentrated": 14,
+    "passes_reference_test": 14,
+    "weight_near_half": 14
+   }
+  },
+  "source": "eval_reference.json",
+  "total": {
+   "bimodal_cases": 59,
+   "concentrated": 53,
+   "passes_reference_test": 53,
+   "weight_near_half": 59
+  }
+ },
+ "seed1": {
+  "fractions": {
+   "0.25": {
+    "bimodal_cases": 5,
+    "concentrated": 3,
+    "passes_reference_test": 3,
+    "weight_near_half": 5
+   },
+   "0.375": {
+    "bimodal_cases": 6,
+    "concentrated": 3,
+    "passes_reference_test": 3,
+    "weight_near_half": 6
+   },
+   "0.5": {
+    "bimodal_cases": 8,
+    "concentrated": 6,
+    "passes_reference_test": 6,
+    "weight_near_half": 8
+   },
+   "0.625": {
+    "bimodal_cases": 10,
+    "concentrated": 8,
+    "passes_reference_test": 8,
+    "weight_near_half": 10
+   },
+   "0.75": {
+    "bimodal_cases": 9,
+    "concentrated": 7,
+    "passes_reference_test": 7,
+    "weight_near_half": 9
+   },
+   "1": {
+    "bimodal_cases": 11,
+    "concentrated": 8,
+    "passes_reference_test": 8,
+    "weight_near_half": 11
+   }
+  },
+  "source": "eval_reference_seed1.json",
+  "total": {
+   "bimodal_cases": 49,
+   "concentrated": 35,
+   "passes_reference_test": 35,
+   "weight_near_half": 49
+  }
+ }
+}

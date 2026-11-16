@@ -166,7 +166,7 @@ def reference_tables(folder, name="eval_reference.json"):
         [
             "f",
             "bimodal cases",
-            "flow keeps both",
+            "flow weight within 0.2 of half",
             "flow gap",
             "reference gap",
             "C2ST flow vs its image",
@@ -182,6 +182,71 @@ def reference_tables(folder, name="eval_reference.json"):
         ["f", "mass", "time", "cos i", "ratio mass", "ratio time", "ratio cos i"],
         rows,
     )
+
+
+def seed_label(seed: str) -> str:
+    return "" if seed == "seed0" else f", {seed}"
+
+
+def modes_table(folder):
+    data = load(folder, "modes_concentration.json")
+    for seed, v in (data or {}).items():
+        rows = [[f, *mode_cells(c)] for f, c in v["fractions"].items()]
+        rows.append(["all", *mode_cells(v["total"])])
+        table(
+            f"Flow against the reference test for two modes{seed_label(seed)}",
+            [
+                "f",
+                "bimodal cases",
+                "weight within 0.2 of half",
+                "passes reference test",
+            ],
+            rows,
+        )
+
+
+def mode_cells(c):
+    return [c["bimodal_cases"], c["weight_near_half"], c["passes_reference_test"]]
+
+
+def paired_table(folder):
+    data = load(folder, "paired_excess.json")
+    for seed, v in (data or {}).items():
+        rows = [
+            [
+                f,
+                p["cases"],
+                num(p["median_c2st"]),
+                num(p["median_floor"]),
+                num(p["median_excess"]),
+                f"{num(p['min_excess'])} to {num(p['max_excess'])}",
+            ]
+            for f, p in v["fractions"].items()
+        ]
+        table(
+            f"Flow C2ST above the floor, paired injections{seed_label(seed)}",
+            ["f", "paired", "C2ST", "floor", "median excess", "excess range"],
+            rows,
+        )
+
+
+def spread_table(folder):
+    data = load(folder, "width_spread.json")
+    for seed, v in (data or {}).items():
+        rows = []
+        for f, names in v["fractions"].items():
+            cells = [
+                f"{num(s['median'], 2)} ({num(s['min'], 2)} to {num(s['max'], 2)}), "
+                f"{s['outside']} of {s['cases']}"
+                for s in names.values()
+            ]
+            rows.append([f, *cells])
+        table(
+            "Flow over reference width per injection: median (range), cases "
+            f"off by more than {v['tolerance']:.0%}{seed_label(seed)}",
+            ["f", "mass", "time", "cos i"],
+            rows,
+        )
 
 
 def sequential_table(folder):
@@ -212,7 +277,7 @@ def sequential_table(folder):
             "evaluations",
             "seconds",
             "stages",
-            "first ESS fraction",
+            "proposal correction ESS",
             "C2ST vs scratch",
         ],
         rows,
@@ -328,6 +393,9 @@ def main():
         training,
         calibration_tables,
         reference_tables,
+        modes_table,
+        paired_table,
+        spread_table,
         sequential_table,
         cost,
     ):

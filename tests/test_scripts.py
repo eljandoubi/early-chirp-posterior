@@ -51,6 +51,7 @@ def test_report_orders_the_sequential_rows_by_variant_and_length(
     lines = [x for x in out.splitlines() if x.startswith(("| scratch", "| chain"))]
     found = [line.split("|")[1].strip() for line in lines]
     assert found == ["scratch@96", "scratch@128", "chain_sampler@96", "chain_flow@96"]
+    assert "| proposal correction ESS |" in out
 
 
 def test_report_titles_the_calibration_tables_of_another_seed(

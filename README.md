@@ -131,7 +131,7 @@ flow is wider than the exact posterior.
 | 0.75 | 9.1 | 0.677 | 0.531 | 0.025 |
 | 1 | 13.3 | 0.919 | 0.515 | 0.004 |
 
-| f | bimodal cases | flow keeps both | flow gap | reference gap | C2ST flow vs its image |
+| f | bimodal cases | flow weight within 0.2 of half | flow gap | reference gap | C2ST flow vs its image |
 |---|---|---|---|---|---|
 | 0.25 | 5 | 1.00 | 0.004 | 0.008 | 0.500 |
 | 0.375 | 8 | 1.00 | 0.009 | 0.010 | 0.499 |
@@ -167,7 +167,7 @@ symmetry (0.50).
 
 ### Reusing the posterior at one fraction as the proposal for the next
 
-| variant@samples | evaluations | seconds | stages | first ESS fraction | C2ST vs scratch |
+| variant@samples | evaluations | seconds | stages | proposal correction ESS | C2ST vs scratch |
 |---|---|---|---|---|---|
 | scratch@96 | 288768 | 0.53 | 7 | 1.00 | n/a |
 | scratch@128 | 329728 | 0.63 | 8 | 1.00 | n/a |
@@ -188,12 +188,15 @@ symmetry (0.50).
 Medians over 10 streams along 64, 96, 128, 160, 192 and 256 observed samples (the first length is the start,
 so it has no row). `scratch` restarts from the prior at every length. `chain_sampler` reweights the previous
 posterior samples with the exact likelihood increment and then tempers and moves; `chain_flow` does the same
-but starts from the flow at 64 samples. Reusing the previous posterior takes 2.0 to 3.6 times fewer likelihood
-evaluations and 1.9 to 3.6 times less time than starting from the prior. The chains differ from the
-from-scratch posteriors by a test accuracy of 0.51 to 0.57; the floor from two from-scratch runs was measured
-only at 256 samples (0.509), and the two-run floor in the reference table above is 0.55 at 128 and 192 samples.
-The flow start changes little: its first reweighting keeps 9 percent effective samples at 96 samples, and every
-later step starts from a corrected posterior either way.
+but starts from the flow at 64 samples. The proposal correction ESS is the effective sample share of the weights
+that turn the starting samples into samples of the exact posterior at the previous length, before the new
+observations are tempered in (1.00 when the start already is a sampler posterior). Reusing the previous posterior
+takes 2.0 to 3.6 times fewer likelihood evaluations and 1.9 to 3.6 times less time than starting from the prior.
+The chains differ from the from-scratch posteriors by a test accuracy of 0.51 to 0.57; the floor from two
+from-scratch runs was measured only at 256 samples (0.509), and the two-run floor in the reference table above is
+0.55 at 128 and 192 samples. The flow start changes little: its proposal correction keeps 9 percent effective
+samples (the smallest of the 10 streams keeps 7 percent, `results/sampler_health.json`), and every later step
+starts from a corrected posterior either way.
 
 ### Cost
 
@@ -245,7 +248,8 @@ src/chirpvi/
   metrics.py      SBC, coverage, TARP, C2ST, mode recovery, widths
   sequential.py   reuse of the posterior at one fraction as proposal for the next
   experiments.py  the experiments behind the scripts
-scripts/          calibrate_snr, check_reference, train, evaluate, sequential, report, figures
+  rechecks.py     mode counts, paired C2ST excess and width spread from the per-case records
+scripts/          calibrate_snr, check_reference, train, evaluate, sequential, recheck, report, figures
 tests/            unit tests (CPU, offline)
 results/          result files (JSON, tables.txt, one training log) and the two figures cited in Results
 ```
@@ -289,6 +293,7 @@ cp results/eval_reference.json results/eval_reference_seed0.json
 python scripts/evaluate.py --full --part reference --seed 1
 cp results/eval_reference.json results/eval_reference_seed1.json
 cp results/eval_reference_seed0.json results/eval_reference.json
+python scripts/recheck.py
 python scripts/report.py > results/tables.txt
 python scripts/figures.py
 ```

@@ -196,8 +196,13 @@ def mode_summary(u: torch.Tensor) -> dict:
 def is_bimodal(
     summary: dict, lo: float = 0.4, hi: float = 0.6, max_std: float = 0.3
 ) -> bool:
+    """Both modes carry weight in [lo, hi] and are narrower than max_std (radians).
+
+    A std that is missing (None in a result file, NaN live) counts as not narrow.
+    """
     stds = (summary["sky_std_0"], summary["sky_std_1"])
-    return lo <= summary["weight"] <= hi and all(s < max_std for s in stds)
+    narrow = all(s is not None and s < max_std for s in stds)
+    return lo <= summary["weight"] <= hi and narrow
 
 
 def widths(u: torch.Tensor) -> dict:

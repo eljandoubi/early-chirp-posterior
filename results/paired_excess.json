@@ -1,0 +1,108 @@
+{
+ "seed0": {
+  "fractions": {
+   "0.25": {
+    "cases": 5,
+    "max_excess": 0.10791015625,
+    "median_c2st": 0.56787109375,
+    "median_excess": 0.002197265625,
+    "median_floor": 0.537353515625,
+    "min_excess": -0.019287109375
+   },
+   "0.375": {
+    "cases": 5,
+    "max_excess": 0.133544921875,
+    "median_c2st": 0.599609375,
+    "median_excess": -0.005615234375,
+    "median_floor": 0.540283203125,
+    "min_excess": -0.008544921875
+   },
+   "0.5": {
+    "cases": 5,
+    "max_excess": 0.133544921875,
+    "median_c2st": 0.57275390625,
+    "median_excess": 0.0615234375,
+    "median_floor": 0.55908203125,
+    "min_excess": -0.026611328125
+   },
+   "0.625": {
+    "cases": 5,
+    "max_excess": 0.23193359375,
+    "median_c2st": 0.611083984375,
+    "median_excess": 0.06689453125,
+    "median_floor": 0.549560546875,
+    "min_excess": -0.06640625
+   },
+   "0.75": {
+    "cases": 5,
+    "max_excess": 0.195556640625,
+    "median_c2st": 0.62548828125,
+    "median_excess": 0.075927734375,
+    "median_floor": 0.53076171875,
+    "min_excess": 0.028564453125
+   },
+   "1": {
+    "cases": 5,
+    "max_excess": 0.4609375,
+    "median_c2st": 0.919921875,
+    "median_excess": 0.40185546875,
+    "median_floor": 0.515380859375,
+    "min_excess": 0.377197265625
+   }
+  },
+  "source": "eval_reference.json"
+ },
+ "seed1": {
+  "fractions": {
+   "0.25": {
+    "cases": 5,
+    "max_excess": 0.1025390625,
+    "median_c2st": 0.576171875,
+    "median_excess": 0.025390625,
+    "median_floor": 0.55078125,
+    "min_excess": -0.03564453125
+   },
+   "0.375": {
+    "cases": 5,
+    "max_excess": 0.09033203125,
+    "median_c2st": 0.6142578125,
+    "median_excess": 0.0498046875,
+    "median_floor": 0.559814453125,
+    "min_excess": 0.00390625
+   },
+   "0.5": {
+    "cases": 5,
+    "max_excess": 0.12841796875,
+    "median_c2st": 0.580810546875,
+    "median_excess": 0.054931640625,
+    "median_floor": 0.55419921875,
+    "min_excess": -0.045654296875
+   },
+   "0.625": {
+    "cases": 5,
+    "max_excess": 0.201904296875,
+    "median_c2st": 0.574462890625,
+    "median_excess": 0.01953125,
+    "median_floor": 0.56884765625,
+    "min_excess": -0.06640625
+   },
+   "0.75": {
+    "cases": 5,
+    "max_excess": 0.165771484375,
+    "median_c2st": 0.6435546875,
+    "median_excess": 0.08837890625,
+    "median_floor": 0.574951171875,
+    "min_excess": 0.03955078125
+   },
+   "1": {
+    "cases": 5,
+    "max_excess": 0.426025390625,
+    "median_c2st": 0.900390625,
+    "median_excess": 0.391357421875,
+    "median_floor": 0.509033203125,
+    "min_excess": 0.31201171875
+   }
+  },
+  "source": "eval_reference_seed1.json"
+ }
+}

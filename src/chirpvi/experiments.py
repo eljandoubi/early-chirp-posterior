@@ -23,6 +23,7 @@ from .metrics import (
     tarp_summary,
     widths,
 )
+from .rechecks import mode_counts, paired_excess
 from .reference import (
     Likelihood,
     angle_grid_posterior,
@@ -169,6 +170,8 @@ def summarise_reference(records, fractions):
             median_is_efficiency=median([r["is_efficiency"] for r in rows]),
             bimodal_cases=len(both),
             flow_keeps_both_modes=(sum(keep) / len(keep)) if keep else None,
+            mode_counts=mode_counts(rows),
+            paired_excess=paired_excess(rows),
             flow_mode_gap=median([abs(r["mode_flow"]["weight"] - 0.5) for r in both]),
             reference_mode_gap=median(
                 [abs(r["mode_ref"]["weight"] - 0.5) for r in both]

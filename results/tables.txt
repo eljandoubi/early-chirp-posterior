@@ -82,7 +82,7 @@
 
 ### Mode recovery
 
-| f | bimodal cases | flow keeps both | flow gap | reference gap | C2ST flow vs its image |
+| f | bimodal cases | flow weight within 0.2 of half | flow gap | reference gap | C2ST flow vs its image |
 |---|---|---|---|---|---|
 | 0.25 | 5 | 1.00 | 0.004 | 0.008 | 0.500 |
 | 0.375 | 8 | 1.00 | 0.009 | 0.010 | 0.499 |
@@ -102,9 +102,77 @@
 | 0.75 | 0.106 | 0.570 | 0.127 | 1.25 | 1.26 | 1.12 |
 | 1 | 0.033 | 0.117 | 0.091 | 2.03 | 2.53 | 1.38 |
 
+### Flow against the reference test for two modes
+
+| f | bimodal cases | weight within 0.2 of half | passes reference test |
+|---|---|---|---|
+| 0.25 | 5 | 5 | 3 |
+| 0.375 | 8 | 8 | 5 |
+| 0.5 | 8 | 8 | 8 |
+| 0.625 | 11 | 11 | 11 |
+| 0.75 | 13 | 13 | 12 |
+| 1 | 14 | 14 | 14 |
+| all | 59 | 59 | 53 |
+
+### Flow against the reference test for two modes, seed1
+
+| f | bimodal cases | weight within 0.2 of half | passes reference test |
+|---|---|---|---|
+| 0.25 | 5 | 5 | 3 |
+| 0.375 | 6 | 6 | 3 |
+| 0.5 | 8 | 8 | 6 |
+| 0.625 | 10 | 10 | 8 |
+| 0.75 | 9 | 9 | 7 |
+| 1 | 11 | 11 | 8 |
+| all | 49 | 49 | 35 |
+
+### Flow C2ST above the floor, paired injections
+
+| f | paired | C2ST | floor | median excess | excess range |
+|---|---|---|---|---|---|
+| 0.25 | 5 | 0.568 | 0.537 | 0.002 | -0.019 to 0.108 |
+| 0.375 | 5 | 0.600 | 0.540 | -0.006 | -0.009 to 0.134 |
+| 0.5 | 5 | 0.573 | 0.559 | 0.062 | -0.027 to 0.134 |
+| 0.625 | 5 | 0.611 | 0.550 | 0.067 | -0.066 to 0.232 |
+| 0.75 | 5 | 0.625 | 0.531 | 0.076 | 0.029 to 0.196 |
+| 1 | 5 | 0.920 | 0.515 | 0.402 | 0.377 to 0.461 |
+
+### Flow C2ST above the floor, paired injections, seed1
+
+| f | paired | C2ST | floor | median excess | excess range |
+|---|---|---|---|---|---|
+| 0.25 | 5 | 0.576 | 0.551 | 0.025 | -0.036 to 0.103 |
+| 0.375 | 5 | 0.614 | 0.560 | 0.050 | 0.004 to 0.090 |
+| 0.5 | 5 | 0.581 | 0.554 | 0.055 | -0.046 to 0.128 |
+| 0.625 | 5 | 0.574 | 0.569 | 0.020 | -0.066 to 0.202 |
+| 0.75 | 5 | 0.644 | 0.575 | 0.088 | 0.040 to 0.166 |
+| 1 | 5 | 0.900 | 0.509 | 0.391 | 0.312 to 0.426 |
+
+### Flow over reference width per injection: median (range), cases off by more than 11%
+
+| f | mass | time | cos i |
+|---|---|---|---|
+| 0.25 | 1.04 (0.84 to 1.27), 6 of 20 | 1.02 (0.98 to 1.05), 0 of 20 | 1.05 (0.89 to 1.20), 5 of 20 |
+| 0.375 | 1.04 (0.88 to 1.26), 5 of 20 | 1.01 (0.96 to 1.13), 1 of 20 | 1.06 (0.98 to 1.17), 3 of 20 |
+| 0.5 | 1.04 (0.85 to 1.42), 8 of 20 | 1.01 (0.95 to 1.24), 3 of 20 | 1.08 (0.89 to 1.33), 9 of 20 |
+| 0.625 | 1.11 (0.89 to 1.96), 10 of 20 | 1.05 (0.89 to 1.54), 9 of 20 | 1.08 (0.98 to 1.33), 7 of 20 |
+| 0.75 | 1.25 (1.00 to 1.60), 14 of 20 | 1.26 (0.93 to 1.44), 14 of 20 | 1.12 (0.99 to 1.28), 13 of 20 |
+| 1 | 2.03 (1.58 to 4.81), 20 of 20 | 2.53 (1.94 to 4.59), 20 of 20 | 1.38 (1.17 to 1.91), 20 of 20 |
+
+### Flow over reference width per injection: median (range), cases off by more than 11%, seed1
+
+| f | mass | time | cos i |
+|---|---|---|---|
+| 0.25 | 0.99 (0.55 to 1.49), 8 of 20 | 1.01 (0.97 to 1.10), 0 of 20 | 1.01 (0.89 to 1.19), 4 of 20 |
+| 0.375 | 1.03 (0.32 to 1.58), 4 of 20 | 1.01 (0.96 to 1.13), 1 of 20 | 1.04 (0.89 to 1.37), 5 of 20 |
+| 0.5 | 1.02 (0.90 to 1.40), 4 of 20 | 1.00 (0.92 to 1.20), 3 of 20 | 1.11 (0.95 to 1.40), 10 of 20 |
+| 0.625 | 1.05 (0.91 to 1.35), 5 of 20 | 1.03 (0.89 to 1.33), 5 of 20 | 1.08 (0.94 to 1.23), 4 of 20 |
+| 0.75 | 1.09 (0.66 to 2.16), 12 of 20 | 1.07 (0.69 to 2.21), 10 of 20 | 1.11 (0.94 to 1.22), 9 of 20 |
+| 1 | 2.19 (1.21 to 4.58), 20 of 20 | 2.61 (1.35 to 5.97), 20 of 20 | 1.35 (1.05 to 1.59), 19 of 20 |
+
 ### Sequential (C2ST floor 0.509)
 
-| variant@samples | evaluations | seconds | stages | first ESS fraction | C2ST vs scratch |
+| variant@samples | evaluations | seconds | stages | proposal correction ESS | C2ST vs scratch |
 |---|---|---|---|---|---|
 | scratch@96 | 288768 | 0.53 | 7 | 1.00 | n/a |
 | scratch@128 | 329728 | 0.63 | 8 | 1.00 | n/a |
@@ -182,7 +250,7 @@
 
 ### Mode recovery, seed1
 
-| f | bimodal cases | flow keeps both | flow gap | reference gap | C2ST flow vs its image |
+| f | bimodal cases | flow weight within 0.2 of half | flow gap | reference gap | C2ST flow vs its image |
 |---|---|---|---|---|---|
 | 0.25 | 5 | 1.00 | 0.012 | 0.011 | 0.494 |
 | 0.375 | 6 | 1.00 | 0.010 | 0.013 | 0.500 |
