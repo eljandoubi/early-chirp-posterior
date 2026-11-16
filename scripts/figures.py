@@ -12,7 +12,9 @@ plt.switch_backend("Agg")
 
 def sbc_figure(ev: dict, path) -> str:
     """Rank histograms (count over uniform count) per fraction and function."""
-    names = list(next(iter(ev.values()))["sbc"])
+    names = sorted(
+        next(iter(ev.values()))["sbc"], key=lambda n: (n == "log_likelihood", n)
+    )
     fig, axes = plt.subplots(
         len(ev),
         len(names),
@@ -39,7 +41,8 @@ def sbc_figure(ev: dict, path) -> str:
             if i == 0:
                 ax.set_title(name.replace("_", " "), fontsize=7)
     fig.suptitle(
-        "SBC rank histograms of the flow: count over uniform count (grey: 2 s.d.)",
+        "SBC rank histograms of the flow: count over uniform count "
+        "(grey: 2 s.d., bars clipped at 3)",
         fontsize=8,
     )
     fig.tight_layout(rect=(0, 0, 1, 0.96), h_pad=0.3, w_pad=0.2)

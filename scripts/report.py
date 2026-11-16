@@ -181,6 +181,12 @@ def sequential_table(folder):
     sq = load(folder, "sequential.json")
     if not sq:
         return
+    order = {"scratch": 0, "chain_sampler": 1, "chain_flow": 2}
+
+    def position(item):
+        variant, n = item[0].split("@")
+        return order[variant], int(n)
+
     rows = [
         [
             k,
@@ -190,7 +196,7 @@ def sequential_table(folder):
             num(v["ess_first"], 2),
             num(v["c2st"]),
         ]
-        for k, v in sq["summary"].items()
+        for k, v in sorted(sq["summary"].items(), key=position)
     ]
     table(
         f"Sequential (C2ST floor {num(sq['c2st_floor'])})",

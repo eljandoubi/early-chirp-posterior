@@ -34,6 +34,25 @@ def test_report_prints_one_cost_row_per_device(monkeypatch, tmp_path, capsys):
     assert "Tesla T4" in out and "| cpu |" in out and "2048 posterior samples" in out
 
 
+def test_report_orders_the_sequential_rows_by_variant_and_length(
+    monkeypatch, tmp_path, capsys
+):
+    monkeypatch.syspath_prepend(str(SCRIPTS))
+    import report
+
+    cell = dict(evals=1, seconds=1.0, stages=1, ess_first=1.0, c2st=0.5)
+    keys = ["chain_flow@96", "scratch@128", "chain_sampler@96", "scratch@96"]
+    summary = {k: cell for k in sorted(keys)}
+    (tmp_path / "sequential.json").write_text(
+        json.dumps(dict(summary=summary, c2st_floor=0.5))
+    )
+    report.sequential_table(tmp_path)
+    out = capsys.readouterr().out
+    lines = [x for x in out.splitlines() if x.startswith(("| scratch", "| chain"))]
+    found = [line.split("|")[1].strip() for line in lines]
+    assert found == ["scratch@96", "scratch@128", "chain_sampler@96", "chain_flow@96"]
+
+
 def test_figures_are_drawn_from_the_result_files(monkeypatch, tmp_path):
     pytest.importorskip("matplotlib")
     monkeypatch.syspath_prepend(str(SCRIPTS))
